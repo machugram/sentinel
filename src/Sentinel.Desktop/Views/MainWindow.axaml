@@ -1,0 +1,136 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Sentinel.Desktop.ViewModels"
+        xmlns:views="using:Sentinel.Desktop.Views"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="900"
+        x:Class="Sentinel.Desktop.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Sentinel Orchestrator"
+        Width="1400" Height="900"
+        MinWidth="1200" MinHeight="700"
+        Background="{DynamicResource BackgroundBrush}"
+        WindowStartupLocation="CenterScreen">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Grid ColumnDefinitions="250,*">
+        
+        <!-- Sidebar Navigation -->
+        <Border Grid.Column="0" 
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,1,0">
+            <Grid RowDefinitions="Auto,*,Auto">
+                
+                <!-- Logo/Brand -->
+                <Border Grid.Row="0" Padding="20" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Border Width="40" Height="40" CornerRadius="8" Background="{DynamicResource PrimaryBrush}">
+                            <TextBlock Text="S" FontSize="20" FontWeight="Bold" 
+                                       Foreground="White"
+                                       HorizontalAlignment="Center" 
+                                       VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Sentinel" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"/>
+                            <TextBlock Text="Orchestrator" FontSize="12" Foreground="{DynamicResource TextMutedBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Navigation Menu -->
+                <ScrollViewer Grid.Row="1" Padding="8">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="MAIN" Classes="caption" Margin="16,16,16,8"/>
+                        
+                        <Button Classes="nav-button active" Command="{Binding NavigateToDashboardCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBlock Text="📊" FontSize="16"/>
+                                <TextBlock Text="Dashboard" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        
+                        <Button Classes="nav-button" Command="{Binding NavigateToWorkflowsCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBlock Text="🔄" FontSize="16"/>
+                                <TextBlock Text="Workflows" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        
+                        <Button Classes="nav-button" Command="{Binding NavigateToRunsCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBlock Text="▶️" FontSize="16"/>
+                                <TextBlock Text="Runs" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        
+                        <Button Classes="nav-button" Command="{Binding NavigateToAlertsCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBlock Text="🔔" FontSize="16"/>
+                                <TextBlock Text="Alerts" VerticalAlignment="Center"/>
+                                <Border Background="{DynamicResource DangerBrush}" CornerRadius="10" 
+                                        Padding="6,2" Margin="8,0,0,0"
+                                        IsVisible="{Binding HasActiveAlerts}">
+                                    <TextBlock Text="{Binding ActiveAlertCount}" FontSize="11" Foreground="White"/>
+                                </Border>
+                            </StackPanel>
+                        </Button>
+                        
+                        <TextBlock Text="TOOLS" Classes="caption" Margin="16,24,16,8"/>
+                        
+                        <Button Classes="nav-button" Command="{Binding NavigateToMigrationCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBlock Text="📥" FontSize="16"/>
+                                <TextBlock Text="JIL Migration" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        
+                        <Button Classes="nav-button" Command="{Binding NavigateToCalendarsCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBlock Text="📅" FontSize="16"/>
+                                <TextBlock Text="Calendars" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        
+                        <TextBlock Text="COMPLIANCE" Classes="caption" Margin="16,24,16,8"/>
+                        
+                        <Button Classes="nav-button" Command="{Binding NavigateToAuditCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBlock Text="📋" FontSize="16"/>
+                                <TextBlock Text="Audit Logs" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </ScrollViewer>
+                
+                <!-- User Profile / Settings -->
+                <Border Grid.Row="2" Padding="16" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <Border CornerRadius="20" Width="40" Height="40" Background="{DynamicResource AccentBrush}">
+                            <TextBlock Text="{Binding UserInitials}" FontWeight="SemiBold" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
+                            <TextBlock Text="{Binding UserName}" FontSize="13" Foreground="{DynamicResource TextBrush}"/>
+                            <TextBlock Text="{Binding UserRole}" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"/>
+                        </StackPanel>
+                        <Button Grid.Column="2" Classes="nav-button" Padding="8" Command="{Binding NavigateToSettingsCommand}">
+                            <TextBlock Text="⚙️" FontSize="16"/>
+                        </Button>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+        
+        <!-- Main Content Area -->
+        <Border Grid.Column="1" Padding="24">
+            <ContentControl Content="{Binding CurrentView}"/>
+        </Border>
+        
+    </Grid>
+
+</Window>

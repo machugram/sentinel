@@ -1,0 +1,22 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Sentinel.Desktop.ViewModels"
+             x:Class="Sentinel.Desktop.Views.MigrationWizardView"
+             x:DataType="vm:MigrationWizardViewModel">
+    
+    <StackPanel Margin="24">
+        <TextBlock Text="JIL Migration Wizard" Classes="page-title"/>
+        <TextBlock Text="Import and convert AutoSys JIL jobs to Sentinel workflows" Classes="caption"/>
+        
+        <Border Classes="card" Margin="0,24,0,0" MinHeight="400">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="📥" FontSize="48" HorizontalAlignment="Center"/>
+                <TextBlock Text="Migration Wizard" FontSize="20" FontWeight="SemiBold" Margin="0,16,0,8" HorizontalAlignment="Center"/>
+                <TextBlock Text="Step-by-step JIL import with confidence scoring" 
+                           Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center"/>
+                <Button Classes="primary" Content="Start Migration" Margin="0,24,0,0"/>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+    
+</UserControl>

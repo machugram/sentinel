@@ -1,0 +1,19 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <LangVersion>latest</LangVersion>
+    
+    <!-- Company Information -->
+    <Company>Sentinel Orchestrator</Company>
+    <Product>Sentinel Orchestrator</Product>
+    <Copyright>Copyright © 2025 Sentinel Orchestrator</Copyright>
+    
+    <!-- Version Information -->
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+  </PropertyGroup>
+</Project>

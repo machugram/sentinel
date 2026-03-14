@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Sentinel.Desktop.ViewModels"
+             x:Class="Sentinel.Desktop.Views.CalendarsView"
+             x:DataType="vm:CalendarsViewModel">
+    
+    <StackPanel Margin="24">
+        <TextBlock Text="Trading Calendars" Classes="page-title"/>
+        <TextBlock Text="Session-aware calendars for 24/7 trading support" Classes="caption"/>
+        
+        <Border Classes="card" Margin="0,24,0,0" MinHeight="400">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="📅" FontSize="48" HorizontalAlignment="Center"/>
+                <TextBlock Text="Calendar Management" FontSize="20" FontWeight="SemiBold" Margin="0,16,0,8" HorizontalAlignment="Center"/>
+                <TextBlock Text="Trading sessions, holidays, and region hand-offs" 
+                           Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+    
+</UserControl>

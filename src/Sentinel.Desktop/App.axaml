@@ -1,0 +1,44 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Sentinel.Desktop.App"
+             xmlns:local="using:Sentinel.Desktop"
+             RequestedThemeVariant="Dark">
+             <!-- Using Dark theme for enterprise/trading platform aesthetic -->
+
+    <Application.DataTemplates>
+        <local:ViewLocator/>
+    </Application.DataTemplates>
+  
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://Sentinel.Desktop/Styles/AppStyles.axaml" />
+    </Application.Styles>
+    
+    <Application.Resources>
+        <!-- Color Palette - Enterprise Trading Platform -->
+        <Color x:Key="PrimaryColor">#0078D4</Color>
+        <Color x:Key="PrimaryDarkColor">#005A9E</Color>
+        <Color x:Key="AccentColor">#00B294</Color>
+        <Color x:Key="SuccessColor">#10B981</Color>
+        <Color x:Key="WarningColor">#F59E0B</Color>
+        <Color x:Key="DangerColor">#EF4444</Color>
+        <Color x:Key="SurfaceColor">#1E1E2E</Color>
+        <Color x:Key="BackgroundColor">#11111B</Color>
+        <Color x:Key="CardColor">#181825</Color>
+        <Color x:Key="BorderColor">#313244</Color>
+        <Color x:Key="TextColor">#CDD6F4</Color>
+        <Color x:Key="TextMutedColor">#6C7086</Color>
+        
+        <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
+        <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+        <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}" />
+        <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
+        <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}" />
+        <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
+        <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}" />
+        <SolidColorBrush x:Key="CardBrush" Color="{StaticResource CardColor}" />
+        <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}" />
+        <SolidColorBrush x:Key="TextBrush" Color="{StaticResource TextColor}" />
+        <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMutedColor}" />
+    </Application.Resources>
+</Application>
