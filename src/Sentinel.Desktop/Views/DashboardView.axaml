@@ -6,158 +6,133 @@
              mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="800"
              x:Class="Sentinel.Desktop.Views.DashboardView"
              x:DataType="vm:DashboardViewModel">
-    
+
     <Design.DataContext>
         <vm:DashboardViewModel/>
     </Design.DataContext>
-    
-    <ScrollViewer>
-        <StackPanel Spacing="24">
-            
-            <!-- Page Header -->
-            <Grid ColumnDefinitions="*,Auto">
-                <StackPanel>
-                    <TextBlock Text="Dashboard" Classes="page-title"/>
-                    <TextBlock Text="Monitor your workflows and system health" Classes="caption"/>
-                </StackPanel>
-                <Button Grid.Column="1" Classes="primary">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <TextBlock Text="+" FontSize="16" FontWeight="Bold"/>
-                        <TextBlock Text="Create Workflow"/>
-                    </StackPanel>
-                </Button>
-            </Grid>
-            
-            <!-- Stats Cards -->
-            <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto">
-                
-                <!-- Active Workflows -->
-                <Border Grid.Column="0" Classes="stat-card" Margin="0,0,12,0">
+
+    <Grid>
+        <ScrollViewer>
+            <StackPanel Spacing="20">
+                <Grid ColumnDefinitions="*,Auto">
                     <StackPanel>
-                        <TextBlock Text="Active Workflows" Classes="caption"/>
-                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
-                            <TextBlock Text="{Binding ActiveWorkflows}" FontSize="32" FontWeight="Bold" Foreground="{DynamicResource TextBrush}"/>
-                            <Border Classes="status-info" VerticalAlignment="Center">
-                                <TextBlock Text="workflows" FontSize="11" Foreground="{DynamicResource PrimaryBrush}"/>
-                            </Border>
+                        <TextBlock Text="Operations dashboard" Classes="page-title"/>
+                        <TextBlock Text="Live status for trading workflows, SLAs, and alerts" Classes="caption"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Classes="ghost" Command="{Binding RefreshDataCommand}" VerticalAlignment="Top">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="{StaticResource Icon.Refresh}" Width="14" Height="14"/>
+                            <TextBlock Text="Refresh"/>
                         </StackPanel>
-                    </StackPanel>
-                </Border>
-                
-                <!-- Running Jobs -->
-                <Border Grid.Column="1" Classes="stat-card" Margin="6,0">
-                    <StackPanel>
-                        <TextBlock Text="Running Jobs" Classes="caption"/>
-                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
-                            <TextBlock Text="{Binding RunningJobs}" FontSize="32" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
-                            <Border Classes="status-success" VerticalAlignment="Center">
-                                <TextBlock Text="in progress" FontSize="11" Foreground="{DynamicResource SuccessBrush}"/>
-                            </Border>
+                    </Button>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
+                    <Border Classes="stat-card">
+                        <StackPanel>
+                            <TextBlock Text="Active workflows" Classes="caption"/>
+                            <TextBlock Text="{Binding ActiveWorkflows}" Classes="metric" Margin="0,8,0,0"/>
+                            <TextBlock Text="{Binding ActiveTrend}" Classes="caption" Margin="0,6,0,0"/>
                         </StackPanel>
-                    </StackPanel>
-                </Border>
-                
-                <!-- Success Rate -->
-                <Border Grid.Column="2" Classes="stat-card" Margin="6,0">
-                    <StackPanel>
-                        <TextBlock Text="Success Rate (24h)" Classes="caption"/>
-                        <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,8,0,0">
-                            <TextBlock Text="{Binding SuccessRate}" FontSize="32" FontWeight="Bold" Foreground="{DynamicResource SuccessBrush}"/>
-                            <TextBlock Text="%" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource SuccessBrush}" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+                    </Border>
+                    <Border Grid.Column="1" Classes="stat-card">
+                        <StackPanel>
+                            <TextBlock Text="Running jobs" Classes="caption"/>
+                            <TextBlock Text="{Binding RunningJobs}" Classes="metric" Foreground="{DynamicResource AccentBrush}" Margin="0,8,0,0"/>
+                            <TextBlock Text="{Binding RunningTrend}" Classes="caption" Margin="0,6,0,0"/>
                         </StackPanel>
-                    </StackPanel>
-                </Border>
-                
-                <!-- Pending Alerts -->
-                <Border Grid.Column="3" Classes="stat-card" Margin="12,0,0,0">
-                    <StackPanel>
-                        <TextBlock Text="Pending Alerts" Classes="caption"/>
-                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
-                            <TextBlock Text="{Binding PendingAlerts}" FontSize="32" FontWeight="Bold" Foreground="{DynamicResource WarningBrush}"/>
-                            <Border Classes="status-warning" VerticalAlignment="Center">
-                                <TextBlock Text="needs attention" FontSize="11" Foreground="{DynamicResource WarningBrush}"/>
-                            </Border>
+                    </Border>
+                    <Border Grid.Column="2" Classes="stat-card">
+                        <StackPanel>
+                            <TextBlock Text="Success rate (24h)" Classes="caption"/>
+                            <StackPanel Orientation="Horizontal" Spacing="2" Margin="0,8,0,0">
+                                <TextBlock Text="{Binding SuccessRate}" FontSize="28" FontWeight="Bold"
+                                           Foreground="{Binding SuccessRate, Converter={StaticResource PercentageToColor}}"/>
+                                <TextBlock Text="%" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Bottom" Margin="0,0,0,4"
+                                           Foreground="{Binding SuccessRate, Converter={StaticResource PercentageToColor}}"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding SuccessTrend}" Classes="caption" Margin="0,6,0,0"/>
                         </StackPanel>
-                    </StackPanel>
-                </Border>
-                
-            </Grid>
-            
-            <!-- Main Content Grid -->
-            <Grid ColumnDefinitions="2*,*" RowDefinitions="Auto">
-                
-                <!-- Recent Runs -->
-                <Border Grid.Column="0" Classes="card" Margin="0,0,12,0">
-                    <StackPanel>
-                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,16">
-                            <TextBlock Text="Recent Runs" Classes="section-title"/>
-                            <Button Grid.Column="1" Content="View All" Background="Transparent" 
-                                    Foreground="{DynamicResource PrimaryBrush}" BorderThickness="0" Padding="0"/>
-                        </Grid>
-                        
-                        <ItemsControl ItemsSource="{Binding RecentRuns}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Padding="12" Margin="0,0,0,8" Background="{DynamicResource SurfaceBrush}" CornerRadius="6">
-                                        <Grid ColumnDefinitions="*,Auto,Auto,Auto">
-                                            <StackPanel>
-                                                <TextBlock Text="{Binding WorkflowName}" FontWeight="Medium" Foreground="{DynamicResource TextBrush}"/>
-                                                <TextBlock Text="{Binding TimeAgo}" Classes="caption" Margin="0,4,0,0"/>
-                                            </StackPanel>
-                                            
-                                            <TextBlock Grid.Column="1" Text="{Binding DurationText}" 
-                                                       Foreground="{DynamicResource TextMutedBrush}"
-                                                       VerticalAlignment="Center" Margin="0,0,16,0"/>
-                                            
-                                            <Border Grid.Column="2" Padding="8,4" CornerRadius="4" VerticalAlignment="Center">
-                                                <Border.Styles>
-                                                    <Style Selector="Border">
-                                                        <Setter Property="Background" Value="#1A10B981"/>
-                                                    </Style>
-                                                </Border.Styles>
-                                                <TextBlock Text="{Binding Status}" FontSize="12"/>
-                                            </Border>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </Border>
-                
-                <!-- Active Alerts -->
-                <Border Grid.Column="1" Classes="card">
-                    <StackPanel>
-                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,16">
-                            <TextBlock Text="Active Alerts" Classes="section-title"/>
-                            <Border Background="{DynamicResource DangerBrush}" CornerRadius="10" Padding="8,4">
-                                <TextBlock Text="{Binding PendingAlerts}" FontSize="12" Foreground="White"/>
-                            </Border>
-                        </Grid>
-                        
-                        <ItemsControl ItemsSource="{Binding ActiveAlerts}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Padding="12" Margin="0,0,0,8" Background="{DynamicResource SurfaceBrush}" CornerRadius="6"
-                                            BorderBrush="{DynamicResource WarningBrush}" BorderThickness="0,0,0,2">
-                                        <StackPanel>
-                                            <Grid ColumnDefinitions="*,Auto">
-                                                <TextBlock Text="{Binding Title}" FontWeight="Medium" Foreground="{DynamicResource TextBrush}"/>
-                                                <TextBlock Grid.Column="1" Text="{Binding TimeAgo}" Classes="caption"/>
+                    </Border>
+                    <Border Grid.Column="3" Classes="stat-card">
+                        <StackPanel>
+                            <TextBlock Text="Pending alerts" Classes="caption"/>
+                            <TextBlock Text="{Binding PendingAlerts}" Classes="metric" Foreground="{DynamicResource WarningBrush}" Margin="0,8,0,0"/>
+                            <TextBlock Text="{Binding AlertTrend}" Classes="caption" Margin="0,6,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid ColumnDefinitions="1.6*,*" ColumnSpacing="12">
+                    <Border Classes="card">
+                        <StackPanel>
+                            <TextBlock Text="Recent runs" Classes="section-title"/>
+                            <ItemsControl ItemsSource="{Binding RecentRuns}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:RecentRunItem">
+                                        <Border Padding="12" Margin="0,0,0,8" Background="{DynamicResource SurfaceBrush}" CornerRadius="8">
+                                            <Grid ColumnDefinitions="*,Auto,Auto">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding WorkflowName}" FontWeight="Medium" Foreground="{DynamicResource TextBrush}"/>
+                                                    <TextBlock Text="{Binding TimeAgo}" Classes="caption" Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="1" Text="{Binding DurationText}" Classes="caption"
+                                                           VerticalAlignment="Center" Margin="0,0,16,0"/>
+                                                <Border Grid.Column="2" Classes="status-pill" VerticalAlignment="Center"
+                                                        Background="{Binding Status, Converter={StaticResource StatusToBackground}}">
+                                                    <TextBlock Text="{Binding StatusText}" FontSize="11" FontWeight="SemiBold"
+                                                               Foreground="{Binding Status, Converter={StaticResource StatusToBrush}}"/>
+                                                </Border>
                                             </Grid>
-                                            <TextBlock Text="{Binding Message}" Classes="caption" 
-                                                       TextWrapping="Wrap" Margin="0,8,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </Border>
-                
-            </Grid>
-            
-        </StackPanel>
-    </ScrollViewer>
-    
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1" Classes="card">
+                        <StackPanel>
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                                <TextBlock Text="Active alerts" Classes="section-title"/>
+                                <Border Background="{DynamicResource DangerBrush}" CornerRadius="10" Padding="8,3"
+                                        IsVisible="{Binding HasPendingAlerts}">
+                                    <TextBlock Text="{Binding PendingAlerts}" FontSize="11" Foreground="White"/>
+                                </Border>
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding ActiveAlerts}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:AlertItem">
+                                        <Border Padding="12" Margin="0,0,0,8" Background="{DynamicResource SurfaceBrush}" CornerRadius="8"
+                                                BorderThickness="3,0,0,0"
+                                                BorderBrush="{Binding Severity, Converter={StaticResource SeverityToBrush}}">
+                                            <StackPanel>
+                                                <Grid ColumnDefinitions="*,Auto">
+                                                    <TextBlock Text="{Binding Title}" FontWeight="Medium" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap"/>
+                                                    <Border Grid.Column="1" Classes="status-pill"
+                                                            Background="{Binding Severity, Converter={StaticResource SeverityToBackground}}">
+                                                        <TextBlock Text="{Binding SeverityText}" FontSize="10" FontWeight="SemiBold"
+                                                                   Foreground="{Binding Severity, Converter={StaticResource SeverityToBrush}}"/>
+                                                    </Border>
+                                                </Grid>
+                                                <TextBlock Text="{Binding Message}" Classes="caption" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                                <TextBlock Text="{Binding TimeAgo}" Classes="caption" Margin="0,6,0,0" Opacity="0.8"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Background="{DynamicResource OverlayBrush}" IsVisible="{Binding IsLoading}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                <ProgressBar IsIndeterminate="True" Width="220"/>
+                <TextBlock Text="Refreshing operations data…" Classes="caption" HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+    </Grid>
 </UserControl>

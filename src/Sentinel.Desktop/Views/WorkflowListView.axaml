@@ -5,78 +5,81 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="800"
              x:Class="Sentinel.Desktop.Views.WorkflowListView"
+             x:Name="WorkflowRoot"
              x:DataType="vm:WorkflowListViewModel">
-    
+
     <Design.DataContext>
         <vm:WorkflowListViewModel/>
     </Design.DataContext>
-    
+
     <Grid RowDefinitions="Auto,Auto,*">
-        
-        <!-- Page Header -->
-        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,24">
+        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,16">
             <StackPanel>
                 <TextBlock Text="Workflows" Classes="page-title"/>
-                <TextBlock Text="Manage and monitor your orchestration workflows" Classes="caption"/>
+                <TextBlock Text="Schedule, trigger, and inspect orchestration graphs" Classes="caption"/>
             </StackPanel>
             <Button Grid.Column="1" Classes="primary" Command="{Binding CreateWorkflowCommand}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="+" FontSize="16" FontWeight="Bold"/>
-                    <TextBlock Text="New Workflow"/>
+                    <PathIcon Data="{StaticResource Icon.Plus}" Width="14" Height="14"/>
+                    <TextBlock Text="New workflow"/>
                 </StackPanel>
             </Button>
         </Grid>
-        
-        <!-- Search and Filters -->
-        <Border Grid.Row="1" Classes="card" Margin="0,0,0,16" Padding="16">
-            <Grid ColumnDefinitions="300,*,Auto">
-                <TextBox Grid.Column="0" 
-                         Watermark="Search workflows..." 
-                         Text="{Binding SearchQuery}"
-                         VerticalAlignment="Center"/>
-                
+
+        <Border Grid.Row="1" Classes="card" Margin="0,0,0,12" Padding="12">
+            <Grid ColumnDefinitions="280,*,Auto" ColumnSpacing="12">
+                <TextBox Classes="search-box" Watermark="Search workflows…" Text="{Binding SearchQuery}"/>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
-                    <ComboBox MinWidth="120" PlaceholderText="Status">
-                        <ComboBoxItem Content="All"/>
-                        <ComboBoxItem Content="Active"/>
-                        <ComboBoxItem Content="Paused"/>
-                        <ComboBoxItem Content="Archived"/>
-                    </ComboBox>
-                    <ComboBox MinWidth="120" PlaceholderText="Region">
-                        <ComboBoxItem Content="All"/>
-                        <ComboBoxItem Content="Americas"/>
-                        <ComboBoxItem Content="EMEA"/>
-                        <ComboBoxItem Content="APAC"/>
-                        <ComboBoxItem Content="Global"/>
-                    </ComboBox>
+                    <ComboBox MinWidth="130" ItemsSource="{Binding StatusOptions}" SelectedItem="{Binding StatusFilter}"/>
+                    <ComboBox MinWidth="130" ItemsSource="{Binding RegionOptions}" SelectedItem="{Binding RegionFilter}"/>
                 </StackPanel>
             </Grid>
         </Border>
-        
-        <!-- Workflow List -->
-        <Border Grid.Row="2" Classes="card">
+
+        <Border Grid.Row="2" Classes="card" Padding="0">
             <DataGrid ItemsSource="{Binding Workflows}"
                       SelectedItem="{Binding SelectedWorkflow}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      GridLinesVisibility="Horizontal"
-                      BorderThickness="0">
+                      AutoGenerateColumns="False">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*"/>
-                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*"/>
-                    <DataGridTextColumn Header="Region" Binding="{Binding Region}" Width="*"/>
-                    <DataGridTextColumn Header="Total Runs" Binding="{Binding TotalRuns}" Width="*"/>
-                    <DataGridTextColumn Header="Success Rate" Binding="{Binding SuccessRateText}" Width="*"/>
-                    <DataGridTextColumn Header="Schedule" Binding="{Binding Schedule}" Width="*"/>
-                    <DataGridTemplateColumn Header="Actions" Width="Auto">
+                    <DataGridTemplateColumn Header="Status" Width="110">
                         <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button Content="▶" Classes="success" Padding="8,4" FontSize="12"
-                                            ToolTip.Tip="Run Now"/>
-                                    <Button Content="✏" Background="Transparent" BorderThickness="0" Padding="8,4"
-                                            Foreground="{DynamicResource TextMutedBrush}"
-                                            ToolTip.Tip="Edit"/>
+                            <DataTemplate x:DataType="vm:WorkflowListItem">
+                                <Border Classes="status-pill" Margin="8,0"
+                                        Background="{Binding Status, Converter={StaticResource StatusToBackground}}">
+                                    <TextBlock Text="{Binding StatusText}" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{Binding Status, Converter={StaticResource StatusToBrush}}"/>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Region" Binding="{Binding Region}" Width="*"/>
+                    <DataGridTextColumn Header="Runs" Binding="{Binding TotalRuns}" Width="80"/>
+                    <DataGridTemplateColumn Header="Success" Width="100">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="vm:WorkflowListItem">
+                                <TextBlock Text="{Binding SuccessRateText}" VerticalAlignment="Center" Margin="8,0"
+                                           Foreground="{Binding SuccessRate, Converter={StaticResource PercentageToColor}}"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Schedule" Binding="{Binding Schedule}" Width="*"/>
+                    <DataGridTemplateColumn Header="Actions" Width="120">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="vm:WorkflowListItem">
+                                <StackPanel Orientation="Horizontal" Spacing="4" Margin="8,0">
+                                    <Button Classes="success" Padding="8,4"
+                                            ToolTip.Tip="Run now"
+                                            Command="{Binding #WorkflowRoot.((vm:WorkflowListViewModel)DataContext).TriggerWorkflowCommand}"
+                                            CommandParameter="{Binding}">
+                                        <PathIcon Data="{StaticResource Icon.Runs}" Width="12" Height="12"/>
+                                    </Button>
+                                    <Button Classes="ghost" Padding="8,4"
+                                            ToolTip.Tip="Edit"
+                                            Command="{Binding #WorkflowRoot.((vm:WorkflowListViewModel)DataContext).EditWorkflowCommand}"
+                                            CommandParameter="{Binding}">
+                                        <PathIcon Data="{StaticResource Icon.Edit}" Width="12" Height="12"/>
+                                    </Button>
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -84,7 +87,5 @@
                 </DataGrid.Columns>
             </DataGrid>
         </Border>
-        
     </Grid>
-    
 </UserControl>

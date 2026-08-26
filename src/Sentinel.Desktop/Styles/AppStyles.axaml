@@ -1,27 +1,28 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     
-    <!-- Global Styles for Sentinel Orchestrator -->
-    
-    <!-- Card Style -->
+    <Style Selector="Window">
+        <Setter Property="FontFamily" Value="Inter, Segoe UI, sans-serif" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
     <Style Selector="Border.card">
         <Setter Property="Background" Value="{DynamicResource CardBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="CornerRadius" Value="10" />
         <Setter Property="Padding" Value="16" />
     </Style>
-    
-    <!-- Page Header Style -->
+
     <Style Selector="TextBlock.page-title">
-        <Setter Property="FontSize" Value="24" />
+        <Setter Property="FontSize" Value="22" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-        <Setter Property="Margin" Value="0,0,0,16" />
+        <Setter Property="Margin" Value="0,0,0,4" />
     </Style>
     
     <Style Selector="TextBlock.section-title">
-        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         <Setter Property="Margin" Value="0,0,0,8" />
@@ -31,96 +32,223 @@
         <Setter Property="FontSize" Value="12" />
         <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
     </Style>
+
+    <Style Selector="TextBlock.metric">
+        <Setter Property="FontSize" Value="28" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.nav-section">
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="LetterSpacing" Value="1.2" />
+        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+        <Setter Property="Margin" Value="16,18,16,6" />
+    </Style>
     
-    <!-- Navigation Button Style -->
     <Style Selector="Button.nav-button">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
         <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="Padding" Value="16,12" />
+        <Setter Property="Padding" Value="12,10" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="CornerRadius" Value="8" />
         <Setter Property="Cursor" Value="Hand" />
     </Style>
     
     <Style Selector="Button.nav-button:pointerover">
-        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="Background" Value="{DynamicResource CardBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
     </Style>
     
     <Style Selector="Button.nav-button.active">
-        <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource NavActiveBrush}" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+
+    <Style Selector="Button.nav-button.active PathIcon">
         <Setter Property="Foreground" Value="White" />
     </Style>
     
-    <!-- Primary Button Style -->
     <Style Selector="Button.primary">
         <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
         <Setter Property="Foreground" Value="White" />
-        <Setter Property="Padding" Value="16,8" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="14,8" />
+        <Setter Property="CornerRadius" Value="6" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     
     <Style Selector="Button.primary:pointerover">
-        <Setter Property="Background" Value="{DynamicResource PrimaryDarkColor}" />
+        <Setter Property="Background" Value="{DynamicResource PrimaryDarkBrush}" />
+    </Style>
+
+    <Style Selector="Button.accent">
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="Foreground" Value="#11111B" />
+        <Setter Property="Padding" Value="14,8" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     
-    <!-- Success Button Style -->
     <Style Selector="Button.success">
         <Setter Property="Background" Value="{DynamicResource SuccessBrush}" />
         <Setter Property="Foreground" Value="White" />
-        <Setter Property="Padding" Value="16,8" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="CornerRadius" Value="6" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Cursor" Value="Hand" />
     </Style>
+
+    <Style Selector="Button.ghost">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="12,7" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+
+    <Style Selector="Button.ghost:pointerover">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    </Style>
     
-    <!-- Danger Button Style -->
     <Style Selector="Button.danger">
         <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
         <Setter Property="Foreground" Value="White" />
-        <Setter Property="Padding" Value="16,8" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="12,7" />
+        <Setter Property="CornerRadius" Value="6" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Cursor" Value="Hand" />
     </Style>
+
+    <Style Selector="Button.icon-button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="8" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Width" Value="36" />
+        <Setter Property="Height" Value="36" />
+    </Style>
+
+    <Style Selector="Button.icon-button:pointerover">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    </Style>
+
+    <Style Selector="Border.status-pill">
+        <Setter Property="Padding" Value="8,3" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
     
-    <!-- Status Badge Styles -->
     <Style Selector="Border.status-success">
-        <Setter Property="Background" Value="#1A10B981" />
-        <Setter Property="Padding" Value="8,4" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Background" Value="#1A2E7D32" />
+        <Setter Property="Padding" Value="8,3" />
+        <Setter Property="CornerRadius" Value="10" />
     </Style>
     
     <Style Selector="Border.status-warning">
-        <Setter Property="Background" Value="#1AF59E0B" />
-        <Setter Property="Padding" Value="8,4" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Background" Value="#1AE65100" />
+        <Setter Property="Padding" Value="8,3" />
+        <Setter Property="CornerRadius" Value="10" />
     </Style>
     
     <Style Selector="Border.status-danger">
-        <Setter Property="Background" Value="#1AEF4444" />
-        <Setter Property="Padding" Value="8,4" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Background" Value="#1AC62828" />
+        <Setter Property="Padding" Value="8,3" />
+        <Setter Property="CornerRadius" Value="10" />
     </Style>
     
     <Style Selector="Border.status-info">
-        <Setter Property="Background" Value="#1A0078D4" />
-        <Setter Property="Padding" Value="8,4" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Background" Value="#1A1976D2" />
+        <Setter Property="Padding" Value="8,3" />
+        <Setter Property="CornerRadius" Value="10" />
     </Style>
     
-    <!-- Stat Card Style -->
     <Style Selector="Border.stat-card">
         <Setter Property="Background" Value="{DynamicResource CardBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="18" />
+        <Setter Property="MinWidth" Value="160" />
+    </Style>
+
+    <Style Selector="Border.command-bar">
+        <Setter Property="Background" Value="{DynamicResource CommandBarBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="16,10" />
+    </Style>
+
+    <Style Selector="Border.step-dot">
+        <Setter Property="Width" Value="28" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style Selector="Border.step-dot.active">
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
+    <Style Selector="Border.step-dot.complete">
+        <Setter Property="Background" Value="{DynamicResource SuccessBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
+    <Style Selector="TextBox.search-box">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="20" />
-        <Setter Property="MinWidth" Value="200" />
+        <Setter Property="Padding" Value="10,8" />
+        <Setter Property="MinHeight" Value="36" />
+    </Style>
+
+    <Style Selector="ComboBox">
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="CornerRadius" Value="6" />
+    </Style>
+
+    <Style Selector="DataGrid">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="GridLinesVisibility" Value="Horizontal" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="RowBackground" Value="Transparent" />
+        <Setter Property="IsReadOnly" Value="True" />
+        <Setter Property="CanUserResizeColumns" Value="True" />
+        <Setter Property="CanUserSortColumns" Value="True" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    </Style>
+
+    <Style Selector="DataGridColumnHeader">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+        <Setter Property="Padding" Value="12,10" />
+    </Style>
+
+    <Style Selector="DataGridCell">
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="MinHeight" Value="40" />
+    </Style>
+
+    <Style Selector="ProgressBar">
+        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="Height" Value="6" />
+        <Setter Property="CornerRadius" Value="3" />
     </Style>
     
 </Styles>
