@@ -250,5 +250,15 @@
         <Setter Property="Height" Value="6" />
         <Setter Property="CornerRadius" Value="3" />
     </Style>
+
+    <Style Selector="Border.overlay">
+        <Setter Property="Background" Value="{DynamicResource OverlayBrush}" />
+    </Style>
+
+    <Style Selector="TextBox.form-field">
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="10,8" />
+    </Style>
     
 </Styles>

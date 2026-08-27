@@ -20,9 +20,28 @@ public partial class WorkflowListViewModel : ViewModelBase
     [ObservableProperty] private ObservableCollection<WorkflowListItem> _workflows = new();
     [ObservableProperty] private WorkflowListItem? _selectedWorkflow;
     [ObservableProperty] private bool _isLoading;
+    [ObservableProperty] private bool _isEditorOpen;
+    [ObservableProperty] private string _editorTitle = "New workflow";
+    [ObservableProperty] private string _draftName = string.Empty;
+    [ObservableProperty] private string _draftDescription = string.Empty;
+    [ObservableProperty] private string _draftRegion = "Americas";
+    [ObservableProperty] private string _draftSchedule = "0 * * * *";
+    [ObservableProperty] private string _draftStatus = "Active";
+    [ObservableProperty] private string? _editorError;
+
+    private Guid? _editingId;
 
     public IReadOnlyList<string> StatusOptions { get; } = new[] { "All", "Active", "Paused", "Draft", "Archived" };
     public IReadOnlyList<string> RegionOptions { get; } = new[] { "All", "Americas", "EMEA", "APAC", "Global" };
+    public IReadOnlyList<string> EditorStatusOptions { get; } = new[] { "Active", "Draft", "Paused" };
+    public IReadOnlyList<string> EditorRegionOptions { get; } = new[] { "Americas", "EMEA", "APAC", "Global" };
+    public bool CanSaveWorkflow => !string.IsNullOrWhiteSpace(DraftName);
+
+    partial void OnDraftNameChanged(string value)
+    {
+        EditorError = null;
+        OnPropertyChanged(nameof(CanSaveWorkflow));
+    }
 
     public WorkflowListViewModel()
     {
@@ -89,7 +108,15 @@ public partial class WorkflowListViewModel : ViewModelBase
     [RelayCommand]
     private void CreateWorkflow()
     {
-        WeakReferenceMessenger.Default.Send(new StatusMessage("Workflow designer is scheduled for a later milestone."));
+        _editingId = null;
+        EditorTitle = "New workflow";
+        DraftName = string.Empty;
+        DraftDescription = string.Empty;
+        DraftRegion = "Americas";
+        DraftSchedule = "0 * * * *";
+        DraftStatus = "Active";
+        EditorError = null;
+        IsEditorOpen = true;
     }
 
     [RelayCommand]
@@ -108,8 +135,128 @@ public partial class WorkflowListViewModel : ViewModelBase
     {
         if (workflow is null)
             return;
+
         SelectedWorkflow = workflow;
-        WeakReferenceMessenger.Default.Send(new StatusMessage($"Opened {workflow.Name} (read-only in v0.1)"));
+        _editingId = workflow.Id;
+        EditorTitle = "Edit workflow";
+        DraftName = workflow.Name;
+        DraftDescription = string.Empty;
+        DraftRegion = workflow.Region;
+        DraftSchedule = workflow.Schedule == "—" ? string.Empty : workflow.Schedule;
+        DraftStatus = workflow.Status.ToString();
+        EditorError = null;
+        IsEditorOpen = true;
+        _ = LoadDescriptionAsync(workflow.Id);
+    }
+
+    [RelayCommand]
+    private void CancelEditor()
+    {
+        IsEditorOpen = false;
+        EditorError = null;
+    }
+
+    [RelayCommand]
+    private async Task SaveWorkflowAsync()
+    {
+        if (string.IsNullOrWhiteSpace(DraftName))
+        {
+            EditorError = "Name is required.";
+            return;
+        }
+
+        if (!Enum.TryParse<WorkflowStatus>(DraftStatus, out var status))
+            status = WorkflowStatus.Active;
+
+        var name = DraftName.Trim();
+        var description = DraftDescription.Trim();
+        var schedule = string.IsNullOrWhiteSpace(DraftSchedule) ? null : DraftSchedule.Trim();
+        var region = string.IsNullOrWhiteSpace(DraftRegion) ? "Global" : DraftRegion;
+
+        if (_workflowService is null)
+        {
+            if (_editingId is Guid existingId)
+            {
+                var index = _all.FindIndex(w => w.Id == existingId);
+                if (index >= 0)
+                    _all[index] = _all[index] with { Name = name, Status = status, Region = region, Schedule = schedule ?? "—" };
+            }
+            else
+            {
+                _all.Insert(0, new WorkflowListItem(Guid.NewGuid(), name, status, region, 0, 100, schedule ?? "—"));
+            }
+
+            FinishEditor(name);
+            ApplyFilters();
+            return;
+        }
+
+        if (_editingId is Guid id)
+        {
+            var existing = await _workflowService.GetWorkflowByIdAsync(id);
+            if (existing is null)
+            {
+                EditorError = "Workflow was not found.";
+                return;
+            }
+
+            existing.Name = name;
+            existing.Description = description;
+            existing.Status = status;
+            existing.CronExpression = schedule;
+            existing.Metadata["Region"] = region;
+            await _workflowService.UpdateWorkflowAsync(existing);
+            WeakReferenceMessenger.Default.Send(new StatusMessage($"Updated {name}"));
+        }
+        else
+        {
+            var workflow = new Workflow
+            {
+                Name = name,
+                Description = string.IsNullOrWhiteSpace(description) ? $"Created from desktop by Alex Chen" : description,
+                Status = status,
+                CronExpression = schedule,
+                Metadata = new Dictionary<string, string> { ["Region"] = region },
+                Sla = new WorkflowSla
+                {
+                    ExpectedDuration = TimeSpan.FromMinutes(12),
+                    WarningThreshold = TimeSpan.FromMinutes(10),
+                    CriticalThreshold = TimeSpan.FromMinutes(15),
+                    NotificationChannel = "ops-trading"
+                },
+                Tasks =
+                {
+                    new WorkflowTask { Id = Guid.NewGuid(), Name = "Prepare", Type = TaskType.Shell, Command = "prepare.sh", Status = Core.Models.TaskStatus.Pending, XPosition = 40, YPosition = 80 },
+                    new WorkflowTask { Id = Guid.NewGuid(), Name = "Run", Type = TaskType.Shell, Command = "run.sh", Status = Core.Models.TaskStatus.Pending, XPosition = 240, YPosition = 80 },
+                    new WorkflowTask { Id = Guid.NewGuid(), Name = "Publish", Type = TaskType.Http, Command = "POST /publish", Status = Core.Models.TaskStatus.Pending, XPosition = 440, YPosition = 80 }
+                }
+            };
+            await _workflowService.CreateWorkflowAsync(workflow);
+            WeakReferenceMessenger.Default.Send(new StatusMessage($"Created {name}"));
+        }
+
+        FinishEditor(name);
+        await LoadAsync();
+        SelectedWorkflow = Workflows.FirstOrDefault(w => w.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void FinishEditor(string name)
+    {
+        SearchQuery = string.Empty;
+        StatusFilter = "All";
+        RegionFilter = "All";
+        IsEditorOpen = false;
+        EditorError = null;
+        _editingId = null;
+    }
+
+    private async Task LoadDescriptionAsync(Guid id)
+    {
+        if (_workflowService is null)
+            return;
+        var existing = await _workflowService.GetWorkflowByIdAsync(id);
+        if (existing is not null && IsEditorOpen && _editingId == id)
+            DraftDescription = existing.Description;
     }
 
     private void ApplyFilters()
