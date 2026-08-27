@@ -64,7 +64,16 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="Schedule" Binding="{Binding Schedule}" Width="*"/>
+                        <DataGridTemplateColumn Header="Schedule" Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="vm:WorkflowListItem">
+                                    <TextBlock Text="{Binding ScheduleDisplay}" Margin="8,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextBrush}"
+                                               ToolTip.Tip="{Binding Schedule}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTemplateColumn Header="Actions" Width="120">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate x:DataType="vm:WorkflowListItem">
@@ -96,15 +105,16 @@
                     BorderThickness="0"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"/>
-            <Border Classes="card" Width="480" Padding="20" HorizontalAlignment="Center" VerticalAlignment="Center"
+            <Border Classes="card" Width="560" MaxHeight="760" Padding="20" HorizontalAlignment="Center" VerticalAlignment="Center"
                     BoxShadow="0 16 40 0 #66000000">
+                <ScrollViewer MaxHeight="720">
                 <StackPanel Spacing="12">
                     <TextBlock Text="{Binding EditorTitle}" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"/>
                     <TextBlock Text="Name" Classes="caption"/>
                     <TextBox Classes="form-field" Watermark="e.g. Intraday PnL Flash" Text="{Binding DraftName}"/>
                     <TextBlock Text="Description" Classes="caption"/>
                     <TextBox Classes="form-field" Watermark="What this workflow does"
-                             AcceptsReturn="True" Height="72" Text="{Binding DraftDescription}"/>
+                             AcceptsReturn="True" Height="64" Text="{Binding DraftDescription}"/>
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                         <StackPanel>
                             <TextBlock Text="Region" Classes="caption" Margin="0,0,0,6"/>
@@ -115,8 +125,55 @@
                             <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding EditorStatusOptions}" SelectedItem="{Binding DraftStatus}"/>
                         </StackPanel>
                     </Grid>
-                    <TextBlock Text="Schedule (cron)" Classes="caption"/>
-                    <TextBox Classes="form-field" Watermark="0 17 * * 1-5" Text="{Binding DraftSchedule}"/>
+                    <TextBlock Text="Schedule" Classes="caption"/>
+                    <TextBox Classes="form-field"
+                             Watermark="every 15 minutes, weekdays at 5pm, or cron"
+                             Text="{Binding DraftScheduleHuman}"/>
+                    <WrapPanel>
+                        <ItemsControl ItemsSource="{Binding SchedulePresets}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Classes="ghost" Padding="10,5" FontSize="11" Margin="0,0,6,6"
+                                            Content="{Binding}"
+                                            Command="{Binding #WorkflowRoot.((vm:WorkflowListViewModel)DataContext).ApplySchedulePresetCommand}"
+                                            CommandParameter="{Binding}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </WrapPanel>
+                    <TextBlock Text="{Binding SchedulePreview}" Classes="caption" IsVisible="{Binding ScheduleIsValid}"/>
+                    <TextBlock Text="{Binding SchedulePreview}" FontSize="12" Foreground="{DynamicResource DangerBrush}"
+                               IsVisible="{Binding !ScheduleIsValid}"/>
+                    <TextBlock Text="Service parameters" Classes="caption"/>
+                    <TextBlock Text="Optional name/value pairs passed to each task (queue, machine, env, …)." Classes="caption"/>
+                    <ItemsControl ItemsSource="{Binding DraftParameters}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:WorkflowParameterItem">
+                                <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="8" Margin="0,0,0,8">
+                                    <TextBox Classes="form-field" Watermark="Name" Text="{Binding Key}"/>
+                                    <TextBox Grid.Column="1" Classes="form-field" Watermark="Value" Text="{Binding Value}"/>
+                                    <Button Grid.Column="2" Classes="icon-button"
+                                            ToolTip.Tip="Remove"
+                                            Command="{Binding #WorkflowRoot.((vm:WorkflowListViewModel)DataContext).RemoveParameterCommand}"
+                                            CommandParameter="{Binding}">
+                                        <PathIcon Data="{StaticResource Icon.Close}" Width="12" Height="12"
+                                                  Foreground="{DynamicResource TextMutedBrush}"/>
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Classes="ghost" HorizontalAlignment="Left" Command="{Binding AddParameterCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="{StaticResource Icon.Plus}" Width="12" Height="12"/>
+                            <TextBlock Text="Add parameter"/>
+                        </StackPanel>
+                    </Button>
                     <TextBlock Text="{Binding EditorError}" Foreground="{DynamicResource DangerBrush}"
                                IsVisible="{Binding EditorError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                     <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,8,0,0">
@@ -125,6 +182,7 @@
                                 IsEnabled="{Binding CanSaveWorkflow}"/>
                     </StackPanel>
                 </StackPanel>
+                </ScrollViewer>
             </Border>
         </Grid>
     </Grid>
