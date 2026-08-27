@@ -29,3 +29,17 @@ public partial class NavigationItem : ObservableObject
 public record StatusMessage(string Text);
 
 public record DataRefreshedMessage(DateTime When);
+
+public record NavigateRequest(
+    string ViewKey,
+    Guid? EntityId = null,
+    string? Filter = null,
+    bool OpenCreate = false);
+
+public sealed class CommandPaletteItem
+{
+    public required string Title { get; init; }
+    public required string Subtitle { get; init; }
+    public required string Kind { get; init; }
+    public required Action Execute { get; init; }
+}

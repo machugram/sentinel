@@ -1,9 +1,11 @@
 ﻿using System.Collections.ObjectModel;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Sentinel.Core.Interfaces;
+using Sentinel.Core.Models;
 using Sentinel.Desktop.Models;
 using Sentinel.Desktop.Services;
 using Sentinel.Infrastructure.Auth;
@@ -15,8 +17,10 @@ public partial class MainWindowViewModel : ViewModelBase, IRecipient<StatusMessa
     private readonly IServiceProvider? _services;
     private readonly IAuthService? _authService;
     private readonly IAlertService? _alertService;
+    private readonly IWorkflowService? _workflowService;
     private readonly AppConfiguration _config;
     private readonly Dictionary<string, ViewModelBase> _views = new();
+    private List<Workflow> _paletteWorkflows = [];
 
     [ObservableProperty] private ViewModelBase _currentView = null!;
     [ObservableProperty] private string _userName = "Alex Chen";
@@ -33,6 +37,10 @@ public partial class MainWindowViewModel : ViewModelBase, IRecipient<StatusMessa
     [ObservableProperty] private string _globalSearch = string.Empty;
     [ObservableProperty] private string? _toastMessage;
     [ObservableProperty] private bool _isToastVisible;
+    [ObservableProperty] private bool _isPaletteOpen;
+    [ObservableProperty] private string _paletteQuery = string.Empty;
+    [ObservableProperty] private ObservableCollection<CommandPaletteItem> _paletteResults = new();
+    [ObservableProperty] private CommandPaletteItem? _selectedPaletteItem;
 
     public double SidebarWidth => IsSidebarExpanded ? 252 : 76;
 
@@ -53,17 +61,23 @@ public partial class MainWindowViewModel : ViewModelBase, IRecipient<StatusMessa
         IServiceProvider services,
         IAuthService authService,
         IAlertService alertService,
+        IWorkflowService workflowService,
         AppConfiguration config)
     {
         _services = services;
         _authService = authService;
         _alertService = alertService;
+        _workflowService = workflowService;
         _config = config;
         IsDarkTheme = !string.Equals(config.Theme, "Light", StringComparison.OrdinalIgnoreCase);
 
         BuildNavigation();
         WeakReferenceMessenger.Default.Register<StatusMessage>(this, (_, message) => Receive(message));
         WeakReferenceMessenger.Default.Register<DataRefreshedMessage>(this, (_, message) => Receive(message));
+        WeakReferenceMessenger.Default.Register<NavigateRequest>(this, (_, request) =>
+        {
+            Dispatcher.UIThread.Post(() => _ = ApplyNavigateRequestAsync(request));
+        });
         CurrentView = GetView<DashboardViewModel>("Dashboard");
         MarkActive("Dashboard");
         _ = InitializeAsync();
@@ -157,6 +171,151 @@ public partial class MainWindowViewModel : ViewModelBase, IRecipient<StatusMessa
         IsToastVisible = false;
     }
 
+    [RelayCommand]
+    private async Task TogglePaletteAsync()
+    {
+        if (IsPaletteOpen)
+        {
+            ClosePalette();
+            return;
+        }
+
+        PaletteQuery = string.Empty;
+        if (_workflowService is not null)
+            _paletteWorkflows = (await _workflowService.GetAllWorkflowsAsync()).ToList();
+        RebuildPalette();
+        IsPaletteOpen = true;
+        SelectedPaletteItem = PaletteResults.FirstOrDefault();
+    }
+
+    [RelayCommand]
+    private void ClosePalette()
+    {
+        IsPaletteOpen = false;
+        PaletteQuery = string.Empty;
+    }
+
+    [RelayCommand]
+    private void ExecutePaletteItem(CommandPaletteItem? item)
+    {
+        var target = item ?? SelectedPaletteItem;
+        if (target is null)
+            return;
+        ClosePalette();
+        target.Execute();
+    }
+
+    [RelayCommand]
+    private void NewWorkflowShortcut()
+    {
+        if (IsPaletteOpen)
+            ClosePalette();
+        _ = ApplyNavigateRequestAsync(new NavigateRequest("Workflows", OpenCreate: true));
+    }
+
+    [RelayCommand]
+    private void RefreshCurrent()
+    {
+        switch (CurrentView)
+        {
+            case DashboardViewModel dashboard:
+                dashboard.RefreshDataCommand.Execute(null);
+                break;
+            case WorkflowListViewModel workflows:
+                workflows.LoadCommand.Execute(null);
+                break;
+            case RunsViewModel runs:
+                runs.LoadCommand.Execute(null);
+                break;
+            case AlertsViewModel alerts:
+                alerts.LoadCommand.Execute(null);
+                break;
+            case CalendarsViewModel calendars:
+                calendars.LoadCommand.Execute(null);
+                break;
+            case AuditViewModel audit:
+                audit.LoadCommand.Execute(null);
+                break;
+        }
+    }
+
+    partial void OnPaletteQueryChanged(string value)
+    {
+        RebuildPalette();
+        SelectedPaletteItem = PaletteResults.FirstOrDefault();
+    }
+
+    private void RebuildPalette()
+    {
+        var query = PaletteQuery?.Trim() ?? string.Empty;
+        var items = new List<CommandPaletteItem>();
+
+        AddIfMatch(items, query, "Dashboard", "Go to page", "Page", () => Navigate("Dashboard"));
+        AddIfMatch(items, query, "Workflows", "Go to page", "Page", () => Navigate("Workflows"));
+        AddIfMatch(items, query, "Runs", "Go to page", "Page", () => Navigate("Runs"));
+        AddIfMatch(items, query, "Alerts", "Go to page", "Page", () => Navigate("Alerts"));
+        AddIfMatch(items, query, "JIL Migration", "Go to page", "Page", () => Navigate("Migration"));
+        AddIfMatch(items, query, "Calendars", "Go to page", "Page", () => Navigate("Calendars"));
+        AddIfMatch(items, query, "Audit Logs", "Go to page", "Page", () => Navigate("Audit"));
+        AddIfMatch(items, query, "Settings", "Go to page", "Page", () => Navigate("Settings"));
+        AddIfMatch(items, query, "New workflow", "Create a workflow", "Action", () =>
+            _ = ApplyNavigateRequestAsync(new NavigateRequest("Workflows", OpenCreate: true)));
+        AddIfMatch(items, query, "Toggle theme", IsDarkTheme ? "Switch to light" : "Switch to dark", "Action", ToggleTheme);
+        AddIfMatch(items, query, "Refresh", "Reload the current page", "Action", RefreshCurrent);
+
+        foreach (var workflow in _paletteWorkflows)
+        {
+            var id = workflow.Id;
+            AddIfMatch(items, query, workflow.Name, $"Workflow · {workflow.Status}", "Workflow",
+                () => _ = ApplyNavigateRequestAsync(new NavigateRequest("Workflows", id)));
+        }
+
+        PaletteResults = new ObservableCollection<CommandPaletteItem>(items);
+    }
+
+    private static void AddIfMatch(
+        List<CommandPaletteItem> items,
+        string query,
+        string title,
+        string subtitle,
+        string kind,
+        Action execute)
+    {
+        if (!string.IsNullOrEmpty(query) &&
+            !title.Contains(query, StringComparison.OrdinalIgnoreCase) &&
+            !subtitle.Contains(query, StringComparison.OrdinalIgnoreCase) &&
+            !kind.Contains(query, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        items.Add(new CommandPaletteItem
+        {
+            Title = title,
+            Subtitle = subtitle,
+            Kind = kind,
+            Execute = execute
+        });
+    }
+
+    private async Task ApplyNavigateRequestAsync(NavigateRequest request)
+    {
+        Navigate(request.ViewKey);
+        switch (request.ViewKey)
+        {
+            case "Runs":
+                await GetView<RunsViewModel>("Runs").FocusRunAsync(request.EntityId);
+                break;
+            case "Alerts":
+                await GetView<AlertsViewModel>("Alerts").FocusAlertAsync(request.EntityId);
+                break;
+            case "Workflows":
+                var workflows = GetView<WorkflowListViewModel>("Workflows");
+                await workflows.ApplyIncomingAsync(request.EntityId, request.Filter);
+                if (request.OpenCreate)
+                    workflows.OpenCreate();
+                break;
+        }
+    }
+
     public void Receive(StatusMessage message)
     {
         ToastMessage = message.Text;
@@ -189,16 +348,16 @@ public partial class MainWindowViewModel : ViewModelBase, IRecipient<StatusMessa
             alertsNav.BadgeCount = ActiveAlertCount;
     }
 
-    private ViewModelBase GetView<T>(string key) where T : ViewModelBase
+    private T GetView<T>(string key) where T : ViewModelBase
     {
         if (_views.TryGetValue(key, out var existing))
-            return existing;
+            return (T)existing;
 
-        ViewModelBase created;
+        T created;
         if (_services is not null)
             created = _services.GetRequiredService<T>();
         else
-            created = (ViewModelBase)Activator.CreateInstance(typeof(T))!;
+            created = (T)Activator.CreateInstance(typeof(T))!;
 
         _views[key] = created;
         return created;

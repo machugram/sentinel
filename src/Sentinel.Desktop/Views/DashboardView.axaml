@@ -5,6 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="800"
              x:Class="Sentinel.Desktop.Views.DashboardView"
+             x:Name="DashboardRoot"
              x:DataType="vm:DashboardViewModel">
 
     <Design.DataContext>
@@ -70,21 +71,30 @@
                             <ItemsControl ItemsSource="{Binding RecentRuns}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:RecentRunItem">
+                                        <Button Classes="row-button"
+                                                Command="{Binding #DashboardRoot.((vm:DashboardViewModel)DataContext).OpenRunCommand}"
+                                                CommandParameter="{Binding}">
                                         <Border Padding="12" Margin="0,0,0,8" Background="{DynamicResource SurfaceBrush}" CornerRadius="8">
-                                            <Grid ColumnDefinitions="*,Auto,Auto">
+                                            <Grid ColumnDefinitions="*,Auto,Auto,Auto">
                                                 <StackPanel>
                                                     <TextBlock Text="{Binding WorkflowName}" FontWeight="Medium" Foreground="{DynamicResource TextBrush}"/>
                                                     <TextBlock Text="{Binding TimeAgo}" Classes="caption" Margin="0,4,0,0"/>
                                                 </StackPanel>
-                                                <TextBlock Grid.Column="1" Text="{Binding DurationText}" Classes="caption"
+                                                <Border Grid.Column="1" Classes="status-pill" VerticalAlignment="Center" Margin="0,0,8,0"
+                                                        Background="{DynamicResource WarningBrush}"
+                                                        IsVisible="{Binding ExceedsSla}">
+                                                    <TextBlock Text="SLA" FontSize="10" FontWeight="SemiBold" Foreground="White"/>
+                                                </Border>
+                                                <TextBlock Grid.Column="2" Text="{Binding DurationText}" Classes="caption"
                                                            VerticalAlignment="Center" Margin="0,0,16,0"/>
-                                                <Border Grid.Column="2" Classes="status-pill" VerticalAlignment="Center"
+                                                <Border Grid.Column="3" Classes="status-pill" VerticalAlignment="Center"
                                                         Background="{Binding Status, Converter={StaticResource StatusToBackground}}">
                                                     <TextBlock Text="{Binding StatusText}" FontSize="11" FontWeight="SemiBold"
                                                                Foreground="{Binding Status, Converter={StaticResource StatusToBrush}}"/>
                                                 </Border>
                                             </Grid>
                                         </Border>
+                                        </Button>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
@@ -103,6 +113,9 @@
                             <ItemsControl ItemsSource="{Binding ActiveAlerts}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:AlertItem">
+                                        <Button Classes="row-button"
+                                                Command="{Binding #DashboardRoot.((vm:DashboardViewModel)DataContext).OpenAlertCommand}"
+                                                CommandParameter="{Binding}">
                                         <Border Padding="12" Margin="0,0,0,8" Background="{DynamicResource SurfaceBrush}" CornerRadius="8"
                                                 BorderThickness="3,0,0,0"
                                                 BorderBrush="{Binding Severity, Converter={StaticResource SeverityToBrush}}">
@@ -119,6 +132,7 @@
                                                 <TextBlock Text="{Binding TimeAgo}" Classes="caption" Margin="0,6,0,0" Opacity="0.8"/>
                                             </StackPanel>
                                         </Border>
+                                        </Button>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>

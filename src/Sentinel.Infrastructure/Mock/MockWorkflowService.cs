@@ -35,6 +35,7 @@ public sealed class MockWorkflowService : IWorkflowService
             UserName = "Alex Chen",
             NewValue = workflow.Name
         });
+        _store.Save();
         return Task.FromResult(workflow);
     }
 
@@ -44,6 +45,7 @@ public sealed class MockWorkflowService : IWorkflowService
             ?? throw new InvalidOperationException($"Workflow {workflow.Id} not found");
         var index = _store.Workflows.IndexOf(existing);
         _store.Workflows[index] = workflow;
+        _store.Save();
         return Task.FromResult(workflow);
     }
 
@@ -51,7 +53,10 @@ public sealed class MockWorkflowService : IWorkflowService
     {
         var existing = _store.Workflows.FirstOrDefault(w => w.Id == id);
         if (existing != null)
+        {
             _store.Workflows.Remove(existing);
+            _store.Save();
+        }
         return Task.CompletedTask;
     }
 
@@ -94,6 +99,7 @@ public sealed class MockWorkflowService : IWorkflowService
             UserName = "Alex Chen",
             NewValue = "manual trigger"
         });
+        _store.Save();
 
         return Task.FromResult(run);
     }
@@ -139,6 +145,7 @@ public sealed class MockWorkflowRunService : IWorkflowRunService
             task.Status = RunStatus.Cancelled;
             task.CompletedAt = DateTime.UtcNow;
         }
+        _store.Save();
         return Task.FromResult(run);
     }
 
@@ -170,6 +177,7 @@ public sealed class MockWorkflowRunService : IWorkflowRunService
             retry.TaskRuns[0].StartedAt = DateTime.UtcNow;
         }
         _store.Runs.Insert(0, retry);
+        _store.Save();
         return Task.FromResult(retry);
     }
 

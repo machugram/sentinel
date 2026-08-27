@@ -208,6 +208,12 @@ public partial class MigrationWizardViewModel : ViewModelBase
         ImportedWorkflowCount = 0;
     }
 
+    [RelayCommand]
+    private void OpenDrafts()
+    {
+        WeakReferenceMessenger.Default.Send(new NavigateRequest("Workflows", Filter: "Draft"));
+    }
+
     private async Task<ConversionResult> ConvertSingleJobAsync(JilJobPreview job)
     {
         try

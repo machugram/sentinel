@@ -123,13 +123,21 @@ public partial class DashboardViewModel : ViewModelBase, IAsyncDisposable
             OnPropertyChanged(nameof(HasPendingAlerts));
             AlertTrend = $"{alerts.Count(a => a.Severity == AlertSeverity.Critical)} critical";
 
+            var slaByWorkflow = workflows
+                .Where(w => w.Sla is not null)
+                .ToDictionary(w => w.Id, w => w.Sla!);
+
             RecentRuns = new ObservableCollection<RecentRunItem>(
                 runs.OrderByDescending(r => r.StartedAt).Take(8).Select(r =>
-                    new RecentRunItem(r.WorkflowName, r.Status, r.Duration, r.StartedAt)));
+                {
+                    var duration = r.Duration ?? DateTime.UtcNow - r.StartedAt;
+                    var exceeds = slaByWorkflow.TryGetValue(r.WorkflowId, out var sla) && duration > sla.WarningThreshold;
+                    return new RecentRunItem(r.Id, r.WorkflowName, r.Status, r.Duration, r.StartedAt, exceeds);
+                }));
 
             ActiveAlerts = new ObservableCollection<AlertItem>(
                 alerts.OrderByDescending(a => a.CreatedAt).Take(5).Select(a =>
-                    new AlertItem(a.Id, a.Title, a.Message, a.Severity, a.CreatedAt, a.AiSuggestion)));
+                    new AlertItem(a.Id, a.Title, a.Message, a.Severity, a.CreatedAt, a.AiSuggestion, a.WorkflowRunId)));
 
             LastRefreshed = DateTime.Now;
             WeakReferenceMessenger.Default.Send(new DataRefreshedMessage(DateTime.UtcNow));
@@ -177,11 +185,11 @@ public partial class DashboardViewModel : ViewModelBase, IAsyncDisposable
     {
         RecentRuns = new ObservableCollection<RecentRunItem>
         {
-            new("Trade Capture Pipeline", RunStatus.Success, TimeSpan.FromMinutes(2), DateTime.Now.AddMinutes(-5)),
-            new("EOD Risk Calculation", RunStatus.Running, null, DateTime.Now.AddMinutes(-15)),
-            new("DTCC Regulatory Report", RunStatus.Success, TimeSpan.FromMinutes(8), DateTime.Now.AddMinutes(-30)),
-            new("Market Data Reconciliation", RunStatus.Failed, TimeSpan.FromMinutes(1), DateTime.Now.AddHours(-1)),
-            new("NAV Calculation", RunStatus.Success, TimeSpan.FromMinutes(12), DateTime.Now.AddHours(-2)),
+            new(Guid.NewGuid(), "Trade Capture Pipeline", RunStatus.Success, TimeSpan.FromMinutes(2), DateTime.Now.AddMinutes(-5)),
+            new(Guid.NewGuid(), "EOD Risk Calculation", RunStatus.Running, null, DateTime.Now.AddMinutes(-15)),
+            new(Guid.NewGuid(), "DTCC Regulatory Report", RunStatus.Success, TimeSpan.FromMinutes(8), DateTime.Now.AddMinutes(-30)),
+            new(Guid.NewGuid(), "Market Data Reconciliation", RunStatus.Failed, TimeSpan.FromMinutes(1), DateTime.Now.AddHours(-1), true),
+            new(Guid.NewGuid(), "NAV Calculation", RunStatus.Success, TimeSpan.FromMinutes(12), DateTime.Now.AddHours(-2)),
         };
 
         ActiveAlerts = new ObservableCollection<AlertItem>
@@ -191,9 +199,28 @@ public partial class DashboardViewModel : ViewModelBase, IAsyncDisposable
             new(Guid.NewGuid(), "Anomaly Detected", "Unusual execution time for EOD Risk Calculation", AlertSeverity.Info, DateTime.Now.AddHours(-2), "Split equity and rates books."),
         };
     }
+
+    [RelayCommand]
+    private void OpenRun(RecentRunItem? item)
+    {
+        if (item is null)
+            return;
+        WeakReferenceMessenger.Default.Send(new NavigateRequest("Runs", item.RunId));
+    }
+
+    [RelayCommand]
+    private void OpenAlert(AlertItem? item)
+    {
+        if (item is null)
+            return;
+        if (item.WorkflowRunId is Guid runId && runId != Guid.Empty)
+            WeakReferenceMessenger.Default.Send(new NavigateRequest("Runs", runId));
+        else
+            WeakReferenceMessenger.Default.Send(new NavigateRequest("Alerts", item.Id));
+    }
 }
 
-public record RecentRunItem(string WorkflowName, RunStatus Status, TimeSpan? Duration, DateTime StartedAt)
+public record RecentRunItem(Guid RunId, string WorkflowName, RunStatus Status, TimeSpan? Duration, DateTime StartedAt, bool ExceedsSla = false)
 {
     public string StatusText => Status.ToString();
     public string DurationText => Duration.HasValue ? $"{Duration.Value.TotalMinutes:F1} min" : "In progress";
@@ -209,7 +236,7 @@ public record RecentRunItem(string WorkflowName, RunStatus Status, TimeSpan? Dur
     }
 }
 
-public record AlertItem(Guid Id, string Title, string Message, AlertSeverity Severity, DateTime CreatedAt, string? AiSuggestion)
+public record AlertItem(Guid Id, string Title, string Message, AlertSeverity Severity, DateTime CreatedAt, string? AiSuggestion, Guid? WorkflowRunId = null)
 {
     public string SeverityText => Severity.ToString();
     public string TimeAgo

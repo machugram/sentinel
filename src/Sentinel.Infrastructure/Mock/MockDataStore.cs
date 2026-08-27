@@ -1,21 +1,95 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Sentinel.Core.Models;
 
 namespace Sentinel.Infrastructure.Mock;
 
 /// <summary>
-/// Shared in-memory catalog used by all mock services so Dashboard, Runs, and Alerts stay consistent.
+/// Shared catalog used by all mock services so Dashboard, Runs, and Alerts stay consistent.
+/// Persists to %LocalAppData%/Sentinel/mock-store.json so desktop edits survive restart.
 /// </summary>
 public sealed class MockDataStore
 {
-    public IList<Workflow> Workflows { get; } = new List<Workflow>();
-    public IList<WorkflowRun> Runs { get; } = new List<WorkflowRun>();
-    public IList<Alert> Alerts { get; } = new List<Alert>();
-    public IList<TradingCalendar> Calendars { get; } = new List<TradingCalendar>();
-    public IList<AuditLogEntry> AuditLogs { get; } = new List<AuditLogEntry>();
-
-    public MockDataStore()
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        Seed();
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
+    private readonly string _path;
+
+    public List<Workflow> Workflows { get; set; } = new();
+    public List<WorkflowRun> Runs { get; set; } = new();
+    public List<Alert> Alerts { get; set; } = new();
+    public List<TradingCalendar> Calendars { get; set; } = new();
+    public List<AuditLogEntry> AuditLogs { get; set; } = new();
+
+    public MockDataStore() : this(DefaultPath())
+    {
+    }
+
+    public MockDataStore(string path)
+    {
+        _path = path;
+        if (!TryLoad())
+        {
+            Seed();
+            Save();
+        }
+    }
+
+    public static string DefaultPath() =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Sentinel", "mock-store.json");
+
+    public void Save()
+    {
+        var directory = Path.GetDirectoryName(_path);
+        if (!string.IsNullOrEmpty(directory))
+            Directory.CreateDirectory(directory);
+
+        var snapshot = new MockStoreSnapshot
+        {
+            Workflows = Workflows,
+            Runs = Runs,
+            Alerts = Alerts,
+            Calendars = Calendars,
+            AuditLogs = AuditLogs
+        };
+        File.WriteAllText(_path, JsonSerializer.Serialize(snapshot, JsonOptions));
+    }
+
+    private bool TryLoad()
+    {
+        try
+        {
+            if (!File.Exists(_path))
+                return false;
+
+            var snapshot = JsonSerializer.Deserialize<MockStoreSnapshot>(File.ReadAllText(_path), JsonOptions);
+            if (snapshot?.Workflows is not { Count: > 0 })
+                return false;
+
+            Workflows = snapshot.Workflows;
+            Runs = snapshot.Runs;
+            Alerts = snapshot.Alerts;
+            Calendars = snapshot.Calendars;
+            AuditLogs = snapshot.AuditLogs;
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private sealed class MockStoreSnapshot
+    {
+        public List<Workflow> Workflows { get; set; } = new();
+        public List<WorkflowRun> Runs { get; set; } = new();
+        public List<Alert> Alerts { get; set; } = new();
+        public List<TradingCalendar> Calendars { get; set; } = new();
+        public List<AuditLogEntry> AuditLogs { get; set; } = new();
     }
 
     public static Guid TradeCaptureId { get; } = Id(1);

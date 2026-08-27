@@ -114,7 +114,10 @@
                     <TextBlock Text="Migration complete" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                     <TextBlock Text="{Binding ImportedWorkflowCount, StringFormat='{}{0} workflows imported as drafts'}"
                                Classes="caption" HorizontalAlignment="Center"/>
-                    <Button Classes="primary" Content="Start another import" Command="{Binding ResetCommand}" HorizontalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                        <Button Classes="primary" Content="Open drafts in Workflows" Command="{Binding OpenDraftsCommand}"/>
+                        <Button Classes="ghost" Content="Start another import" Command="{Binding ResetCommand}"/>
+                    </StackPanel>
                 </StackPanel>
             </Grid>
         </Border>

@@ -26,6 +26,7 @@ public sealed class MockAlertService : IAlertService
         var alert = Require(id);
         alert.AcknowledgedAt = DateTime.UtcNow;
         alert.AcknowledgedBy = userId;
+        _store.Save();
         return Task.FromResult(alert);
     }
 
@@ -34,6 +35,7 @@ public sealed class MockAlertService : IAlertService
         var alert = Require(id);
         alert.ResolvedAt = DateTime.UtcNow;
         alert.Context["resolution"] = resolution;
+        _store.Save();
         return Task.FromResult(alert);
     }
 

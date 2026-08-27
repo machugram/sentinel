@@ -55,6 +55,7 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
                         <DataGridTextColumn Header="Region" Binding="{Binding Region}" Width="*"/>
+                        <DataGridTextColumn Header="SLA" Binding="{Binding SlaDisplay}" Width="70"/>
                         <DataGridTextColumn Header="Runs" Binding="{Binding TotalRuns}" Width="80"/>
                         <DataGridTemplateColumn Header="Success" Width="100">
                             <DataGridTemplateColumn.CellTemplate>
@@ -105,7 +106,7 @@
                     BorderThickness="0"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"/>
-            <Border Classes="card" Width="560" MaxHeight="760" Padding="20" HorizontalAlignment="Center" VerticalAlignment="Center"
+            <Border Classes="card" Width="640" MaxHeight="800" Padding="20" HorizontalAlignment="Center" VerticalAlignment="Center"
                     BoxShadow="0 16 40 0 #66000000">
                 <ScrollViewer MaxHeight="720">
                 <StackPanel Spacing="12">
@@ -149,6 +150,46 @@
                     <TextBlock Text="{Binding SchedulePreview}" Classes="caption" IsVisible="{Binding ScheduleIsValid}"/>
                     <TextBlock Text="{Binding SchedulePreview}" FontSize="12" Foreground="{DynamicResource DangerBrush}"
                                IsVisible="{Binding !ScheduleIsValid}"/>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <StackPanel>
+                            <TextBlock Text="Expected duration (minutes)" Classes="caption" Margin="0,0,0,6"/>
+                            <NumericUpDown Minimum="1" Maximum="1440" Increment="1" FormatString="0"
+                                           Value="{Binding DraftSlaExpectedMinutes}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="SLA warning (minutes)" Classes="caption" Margin="0,0,0,6"/>
+                            <NumericUpDown Minimum="1" Maximum="1440" Increment="1" FormatString="0"
+                                           Value="{Binding DraftSlaWarningMinutes}"/>
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Text="Tasks" Classes="caption"/>
+                    <TextBlock Text="Order is top to bottom. Types: Shell, Docker, Http, Python, Kafka, Custom." Classes="caption"/>
+                    <ItemsControl ItemsSource="{Binding DraftTasks}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:WorkflowTaskDraft">
+                                <Grid ColumnDefinitions="1.2*,0.8*,1.6*,Auto" ColumnSpacing="8" Margin="0,0,0,8">
+                                    <TextBox Classes="form-field" Watermark="Task name" Text="{Binding Name}"/>
+                                    <ComboBox Grid.Column="1" HorizontalAlignment="Stretch"
+                                              ItemsSource="{Binding #WorkflowRoot.((vm:WorkflowListViewModel)DataContext).TaskTypes}"
+                                              SelectedItem="{Binding Type}"/>
+                                    <TextBox Grid.Column="2" Classes="form-field" Watermark="Command" Text="{Binding Command}"/>
+                                    <Button Grid.Column="3" Classes="icon-button"
+                                            ToolTip.Tip="Remove task"
+                                            Command="{Binding #WorkflowRoot.((vm:WorkflowListViewModel)DataContext).RemoveTaskCommand}"
+                                            CommandParameter="{Binding}">
+                                        <PathIcon Data="{StaticResource Icon.Close}" Width="12" Height="12"
+                                                  Foreground="{DynamicResource TextMutedBrush}"/>
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Classes="ghost" HorizontalAlignment="Left" Command="{Binding AddTaskCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="{StaticResource Icon.Plus}" Width="12" Height="12"/>
+                            <TextBlock Text="Add task"/>
+                        </StackPanel>
+                    </Button>
                     <TextBlock Text="Service parameters" Classes="caption"/>
                     <TextBlock Text="Optional name/value pairs passed to each task (queue, machine, env, …)." Classes="caption"/>
                     <ItemsControl ItemsSource="{Binding DraftParameters}">

@@ -23,6 +23,7 @@ public sealed class MockCalendarService : ICalendarService
         if (calendar.Id == Guid.Empty)
             calendar.Id = Guid.NewGuid();
         _store.Calendars.Add(calendar);
+        _store.Save();
         return Task.FromResult(calendar);
     }
 
@@ -32,6 +33,7 @@ public sealed class MockCalendarService : ICalendarService
             ?? throw new InvalidOperationException($"Calendar {calendar.Id} not found");
         var index = _store.Calendars.IndexOf(existing);
         _store.Calendars[index] = calendar;
+        _store.Save();
         return Task.FromResult(calendar);
     }
 
@@ -39,7 +41,10 @@ public sealed class MockCalendarService : ICalendarService
     {
         var existing = _store.Calendars.FirstOrDefault(c => c.Id == id);
         if (existing != null)
+        {
             _store.Calendars.Remove(existing);
+            _store.Save();
+        }
         return Task.CompletedTask;
     }
 

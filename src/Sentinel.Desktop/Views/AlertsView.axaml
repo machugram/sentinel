@@ -78,6 +78,9 @@
                         <Button Classes="ghost" Content="Acknowledge"
                                 Command="{Binding AcknowledgeCommand}"
                                 CommandParameter="{Binding SelectedAlert}"/>
+                        <Button Classes="ghost" Content="Open run"
+                                Command="{Binding OpenRunCommand}"
+                                IsEnabled="{Binding CanOpenRun}"/>
                         <Button Classes="primary" Content="Resolve"
                                 Command="{Binding ResolveCommand}"
                                 CommandParameter="{Binding SelectedAlert}"/>

@@ -23,6 +23,7 @@ public partial class AlertsViewModel : ViewModelBase
     public int CriticalCount => _all.Count(a => a.Severity == AlertSeverity.Critical && a.ResolvedAt is null);
     public int WarningCount => _all.Count(a => a.Severity == AlertSeverity.Warning && a.ResolvedAt is null);
     public int InfoCount => _all.Count(a => a.Severity == AlertSeverity.Info && a.ResolvedAt is null);
+    public bool CanOpenRun => SelectedAlert?.WorkflowRunId is Guid runId && runId != Guid.Empty;
 
     public AlertsViewModel()
     {
@@ -41,6 +42,7 @@ public partial class AlertsViewModel : ViewModelBase
     }
 
     partial void OnSeverityFilterChanged(string value) => ApplyFilters();
+    partial void OnSelectedAlertChanged(Alert? value) => OnPropertyChanged(nameof(CanOpenRun));
 
     [RelayCommand]
     private async Task LoadAsync()
@@ -81,6 +83,25 @@ public partial class AlertsViewModel : ViewModelBase
         await _alertService.ResolveAlertAsync(alert.Id, "Resolved from desktop");
         WeakReferenceMessenger.Default.Send(new StatusMessage($"Resolved {alert.Title}"));
         await LoadAsync();
+    }
+
+    [RelayCommand]
+    private void OpenRun()
+    {
+        if (SelectedAlert?.WorkflowRunId is not Guid runId || runId == Guid.Empty)
+            return;
+        WeakReferenceMessenger.Default.Send(new NavigateRequest("Runs", runId));
+    }
+
+    public async Task FocusAlertAsync(Guid? id)
+    {
+        if (id is Guid)
+            SeverityFilter = "All";
+        await LoadAsync();
+        if (id is not Guid alertId)
+            return;
+        SelectedAlert = Alerts.FirstOrDefault(a => a.Id == alertId)
+            ?? _all.FirstOrDefault(a => a.Id == alertId);
     }
 
     private void ApplyFilters()
