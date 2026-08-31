@@ -8,7 +8,7 @@ namespace Sentinel.Infrastructure.Mock;
 /// Shared catalog used by all mock services so Dashboard, Runs, and Alerts stay consistent.
 /// Persists to %LocalAppData%/Sentinel/mock-store.json so desktop edits survive restart.
 /// </summary>
-public sealed class MockDataStore
+public sealed class MockDataStore : IDemoCatalogService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -17,7 +17,9 @@ public sealed class MockDataStore
         Converters = { new JsonStringEnumConverter() }
     };
 
+    private readonly object _sync = new();
     private readonly string _path;
+    private readonly Timer _timer;
 
     public List<Workflow> Workflows { get; set; } = new();
     public List<WorkflowRun> Runs { get; set; } = new();
@@ -35,14 +37,40 @@ public sealed class MockDataStore
         if (!TryLoad())
         {
             Seed();
-            Save();
+            Persist();
         }
+
+        _timer = new Timer(_ => Tick(), null, TimeSpan.FromSeconds(1.2), TimeSpan.FromSeconds(1.2));
     }
+
+    public event EventHandler? CatalogChanged;
 
     public static string DefaultPath() =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Sentinel", "mock-store.json");
 
     public void Save()
+    {
+        lock (_sync)
+            Persist();
+    }
+
+    public void ResetToSeed()
+    {
+        lock (_sync)
+        {
+            Workflows.Clear();
+            Runs.Clear();
+            Alerts.Clear();
+            Calendars.Clear();
+            AuditLogs.Clear();
+            Seed();
+            Persist();
+        }
+
+        CatalogChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void Persist()
     {
         var directory = Path.GetDirectoryName(_path);
         if (!string.IsNullOrEmpty(directory))
@@ -57,6 +85,75 @@ public sealed class MockDataStore
             AuditLogs = AuditLogs
         };
         File.WriteAllText(_path, JsonSerializer.Serialize(snapshot, JsonOptions));
+    }
+
+    private void Tick()
+    {
+        bool changed;
+        lock (_sync)
+        {
+            changed = AdvanceRunningRuns();
+            if (changed)
+                Persist();
+        }
+
+        if (changed)
+            CatalogChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private bool AdvanceRunningRuns()
+    {
+        var changed = false;
+        foreach (var run in Runs.Where(r => r.Status == RunStatus.Running).ToList())
+        {
+            Advance(run);
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    private static void Advance(WorkflowRun run)
+    {
+        if (run.TaskRuns.Count == 0)
+        {
+            run.Status = RunStatus.Success;
+            run.CompletedAt = DateTime.UtcNow;
+            return;
+        }
+
+        var running = run.TaskRuns.FirstOrDefault(t => t.Status == RunStatus.Running);
+        if (running is null)
+        {
+            var next = run.TaskRuns.FirstOrDefault(t => t.Status == RunStatus.Pending);
+            if (next is null)
+            {
+                run.Status = RunStatus.Success;
+                run.CompletedAt = DateTime.UtcNow;
+                return;
+            }
+
+            next.Status = RunStatus.Running;
+            next.StartedAt = DateTime.UtcNow;
+            return;
+        }
+
+        running.Status = RunStatus.Success;
+        running.CompletedAt = DateTime.UtcNow;
+        running.ExitCode = 0;
+        running.Output ??= "completed";
+
+        var following = run.TaskRuns.SkipWhile(t => t.Id != running.Id).Skip(1).FirstOrDefault();
+        if (following is null)
+        {
+            run.Status = RunStatus.Success;
+            run.CompletedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            following.Status = RunStatus.Running;
+            following.StartedAt = DateTime.UtcNow;
+        }
     }
 
     private bool TryLoad()
@@ -122,6 +219,7 @@ public sealed class MockDataStore
         foreach (var workflow in Workflows)
         {
             workflow.Tasks = CreateDefaultTasks(workflow.Name);
+            workflow.Dependencies = SequentialDependencies(workflow.Tasks);
         }
 
         Runs.Add(CreateRun(Id(201), TradeCaptureId, "Trade Capture Pipeline", RunStatus.Success, now.AddMinutes(-7), now.AddMinutes(-5), TriggerType.Scheduled, "scheduler"));
@@ -291,6 +389,22 @@ public sealed class MockDataStore
             new() { Id = Guid.NewGuid(), Name = workflowName.Split(' ')[0] + " Work", Type = TaskType.Python, Command = "run.py", Status = Core.Models.TaskStatus.Running, XPosition = 240, YPosition = 80 },
             new() { Id = Guid.NewGuid(), Name = "Publish", Type = TaskType.Http, Command = "POST /publish", Status = Core.Models.TaskStatus.Pending, XPosition = 440, YPosition = 80 }
         };
+    }
+
+    private static List<TaskDependency> SequentialDependencies(IReadOnlyList<WorkflowTask> tasks)
+    {
+        var dependencies = new List<TaskDependency>();
+        for (var i = 1; i < tasks.Count; i++)
+        {
+            dependencies.Add(new TaskDependency
+            {
+                FromTaskId = tasks[i - 1].Id,
+                ToTaskId = tasks[i].Id,
+                Condition = DependencyCondition.Success
+            });
+        }
+
+        return dependencies;
     }
 
     private static WorkflowRun CreateRun(

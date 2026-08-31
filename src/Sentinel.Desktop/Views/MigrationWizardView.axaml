@@ -96,6 +96,7 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Job" Binding="{Binding JobName}" Width="2*"/>
                             <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100"/>
+                            <DataGridTextColumn Header="Command" Binding="{Binding Command}" Width="2*"/>
                             <DataGridTextColumn Header="Workflow" Binding="{Binding WorkflowId}" Width="120"/>
                             <DataGridTextColumn Header="Notes" Binding="{Binding Notes}" Width="2*"/>
                         </DataGrid.Columns>

@@ -12,7 +12,7 @@
         <StackPanel Spacing="16" MaxWidth="720" HorizontalAlignment="Left">
             <StackPanel>
                 <TextBlock Text="Settings" Classes="page-title"/>
-                <TextBlock Text="Local desktop preferences. Values persist for this session." Classes="caption"/>
+                <TextBlock Text="Local desktop preferences. Saved on this machine." Classes="caption"/>
             </StackPanel>
 
             <Border Classes="card">
@@ -45,6 +45,7 @@
             <StackPanel Orientation="Horizontal" Spacing="8">
                 <Button Classes="primary" Content="Save" Command="{Binding SaveCommand}"/>
                 <Button Classes="ghost" Content="Reset defaults" Command="{Binding ResetCommand}"/>
+                <Button Classes="danger" Content="Reset demo data" Command="{Binding ResetDemoDataCommand}"/>
             </StackPanel>
         </StackPanel>
     </ScrollViewer>

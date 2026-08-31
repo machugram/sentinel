@@ -55,6 +55,17 @@ public sealed class MockWorkflowService : IWorkflowService
         if (existing != null)
         {
             _store.Workflows.Remove(existing);
+            _store.AuditLogs.Insert(0, new AuditLogEntry
+            {
+                Id = Guid.NewGuid(),
+                Timestamp = DateTime.UtcNow,
+                Action = "workflow.delete",
+                EntityType = "Workflow",
+                EntityId = id,
+                UserId = "operator-1",
+                UserName = "Alex Chen",
+                NewValue = existing.Name
+            });
             _store.Save();
         }
         return Task.CompletedTask;

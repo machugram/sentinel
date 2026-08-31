@@ -30,6 +30,11 @@ public partial class RunsViewModel : ViewModelBase
     public bool HasSelection => SelectedRun is not null;
     public bool CanRetry => SelectedRun is { Status: RunStatus.Failed or RunStatus.TimedOut or RunStatus.Cancelled };
     public bool CanCancel => SelectedRun is { Status: RunStatus.Running or RunStatus.Pending };
+    public bool HasRuns => Runs.Count > 0;
+    public string EmptyMessage =>
+        StatusFilter != "All" || !string.IsNullOrWhiteSpace(SearchQuery)
+            ? "No runs match these filters."
+            : "No runs yet.";
 
     public RunsViewModel()
     {
@@ -54,12 +59,17 @@ public partial class RunsViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task LoadAsync()
+    private Task LoadAsync() => LoadCoreAsync(showSpinner: true);
+
+    public void RefreshQuiet() => _ = LoadCoreAsync(showSpinner: false);
+
+    private async Task LoadCoreAsync(bool showSpinner)
     {
         if (_runService is null)
             return;
 
-        IsLoading = true;
+        if (showSpinner)
+            IsLoading = true;
         try
         {
             _all = (await _runService.GetRecentRunsAsync(50)).ToList();
@@ -76,17 +86,31 @@ public partial class RunsViewModel : ViewModelBase
         }
         finally
         {
-            IsLoading = false;
+            if (showSpinner)
+                IsLoading = false;
         }
     }
 
     [RelayCommand]
-    private async Task CancelAsync()
+    private void Cancel()
     {
-        if (_runService is null || SelectedRun is null)
+        if (SelectedRun is null)
             return;
-        SelectedRun = await _runService.CancelRunAsync(SelectedRun.Id);
-        WeakReferenceMessenger.Default.Send(new StatusMessage($"Cancelled {SelectedRun.WorkflowName}"));
+        var run = SelectedRun;
+        WeakReferenceMessenger.Default.Send(new ConfirmRequest(
+            "Cancel run",
+            $"Cancel the in-flight run of “{run.WorkflowName}”?",
+            "Cancel run",
+            true,
+            () => _ = CancelConfirmedAsync(run)));
+    }
+
+    private async Task CancelConfirmedAsync(WorkflowRun run)
+    {
+        if (_runService is null)
+            return;
+        SelectedRun = await _runService.CancelRunAsync(run.Id);
+        WeakReferenceMessenger.Default.Send(new StatusMessage($"Cancelled {run.WorkflowName}"));
         await LoadAsync();
     }
 
@@ -113,23 +137,40 @@ public partial class RunsViewModel : ViewModelBase
         Runs = new ObservableCollection<WorkflowRun>(query.OrderByDescending(r => r.StartedAt));
         SelectedRun = selectedId is { } id ? Runs.FirstOrDefault(r => r.Id == id) : Runs.FirstOrDefault();
         RefreshSelectionMeta();
+        OnPropertyChanged(nameof(HasRuns));
+        OnPropertyChanged(nameof(EmptyMessage));
     }
 
-    public async Task FocusRunAsync(Guid? id)
+    public async Task ApplyIncomingAsync(Guid? runId, string? filter)
     {
-        if (id is Guid)
+        if (runId is Guid)
         {
             StatusFilter = "All";
             SearchQuery = string.Empty;
         }
+        else if (!string.IsNullOrWhiteSpace(filter))
+        {
+            if (StatusOptions.Any(o => o.Equals(filter, StringComparison.OrdinalIgnoreCase)))
+            {
+                StatusFilter = filter;
+                SearchQuery = string.Empty;
+            }
+            else
+            {
+                StatusFilter = "All";
+                SearchQuery = filter;
+            }
+        }
 
         await LoadAsync();
-        if (id is not Guid runId)
+        if (runId is not Guid id)
             return;
 
-        SelectedRun = Runs.FirstOrDefault(r => r.Id == runId)
-            ?? _all.FirstOrDefault(r => r.Id == runId);
+        SelectedRun = Runs.FirstOrDefault(r => r.Id == id)
+            ?? _all.FirstOrDefault(r => r.Id == id);
     }
+
+    public async Task FocusRunAsync(Guid? id) => await ApplyIncomingAsync(id, null);
 
     private void RefreshSelectionMeta()
     {
@@ -163,6 +204,8 @@ public partial class RunsViewModel : ViewModelBase
             }
             else if (task.Status == RunStatus.Running)
                 log.AppendLine($"[{DateTime.UtcNow:HH:mm:ss}] Task {task.TaskName} still running…");
+            else if (task.Status == RunStatus.Pending)
+                log.AppendLine($"                Task {task.TaskName} waiting on previous task");
 
             if (!string.IsNullOrWhiteSpace(task.Output))
                 log.AppendLine($"                {task.Output}");

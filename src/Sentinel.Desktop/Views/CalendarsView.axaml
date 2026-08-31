@@ -3,6 +3,7 @@
              xmlns:vm="using:Sentinel.Desktop.ViewModels"
              xmlns:core="using:Sentinel.Core.Models"
              x:Class="Sentinel.Desktop.Views.CalendarsView"
+             x:Name="CalendarsRoot"
              x:DataType="vm:CalendarsViewModel">
 
     <Design.DataContext>
@@ -15,11 +16,14 @@
                 <TextBlock Text="Trading calendars" Classes="page-title"/>
                 <TextBlock Text="Session-aware calendars for 24/7 follow-the-sun operations" Classes="caption"/>
             </StackPanel>
-            <Border Grid.Column="1" Classes="status-pill" VerticalAlignment="Top"
-                    Background="{Binding IsMarketOpen, Converter={StaticResource StatusToBackground}}">
-                <TextBlock FontSize="12" FontWeight="SemiBold"
-                           Text="{Binding CurrentSessionName, StringFormat='Session: {0}'}"/>
-            </Border>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <Border Classes="status-pill" VerticalAlignment="Center"
+                        Background="{Binding IsMarketOpen, Converter={StaticResource StatusToBackground}}">
+                    <TextBlock FontSize="12" FontWeight="SemiBold"
+                               Text="{Binding CurrentSessionName, StringFormat='Session: {0}'}"/>
+                </Border>
+                <Button Classes="primary" Content="Save calendar" Command="{Binding SaveCommand}"/>
+            </StackPanel>
         </Grid>
 
         <Grid Grid.Row="1" ColumnDefinitions="280,*" ColumnSpacing="12">
@@ -45,36 +49,101 @@
                         </StackPanel>
                     </Border>
                     <Border Classes="card">
-                        <StackPanel>
+                        <StackPanel Spacing="8">
                             <TextBlock Text="Sessions" Classes="section-title"/>
                             <ItemsControl ItemsSource="{Binding Sessions}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="core:TradingSession">
                                         <Border Padding="10" Margin="0,0,0,8" Background="{DynamicResource SurfaceBrush}" CornerRadius="8">
-                                            <Grid ColumnDefinitions="*,Auto,Auto">
+                                            <Grid ColumnDefinitions="*,Auto,Auto,Auto">
                                                 <StackPanel>
                                                     <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextBrush}"/>
                                                     <TextBlock Text="{Binding Region}" Classes="caption"/>
                                                 </StackPanel>
                                                 <TextBlock Grid.Column="1" Text="{Binding OpenTime}" Classes="caption" Margin="0,0,12,0" VerticalAlignment="Center"/>
                                                 <TextBlock Grid.Column="2" Text="{Binding CloseTime}" Classes="caption" VerticalAlignment="Center"/>
+                                                <Button Grid.Column="3" Classes="icon-button" Margin="8,0,0,0"
+                                                        Command="{Binding #CalendarsRoot.((vm:CalendarsViewModel)DataContext).RemoveSessionCommand}"
+                                                        CommandParameter="{Binding}">
+                                                    <PathIcon Data="{StaticResource Icon.Close}" Width="12" Height="12"/>
+                                                </Button>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+                            <Grid ColumnDefinitions="1.4*,0.9*,0.7*,0.7*,Auto" ColumnSpacing="8">
+                                <TextBox Classes="form-field" Watermark="Session name" Text="{Binding DraftSessionName}"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding RegionOptions}" SelectedItem="{Binding DraftSessionRegion}"/>
+                                <TextBox Grid.Column="2" Classes="form-field" Watermark="09:30" Text="{Binding DraftSessionOpen}"/>
+                                <TextBox Grid.Column="3" Classes="form-field" Watermark="16:00" Text="{Binding DraftSessionClose}"/>
+                                <Button Grid.Column="4" Classes="ghost" Content="Add" Command="{Binding AddSessionCommand}"/>
+                            </Grid>
                         </StackPanel>
                     </Border>
                     <Border Classes="card">
-                        <StackPanel>
+                        <StackPanel Spacing="8">
                             <TextBlock Text="Holidays" Classes="section-title"/>
-                            <DataGrid ItemsSource="{Binding Holidays}" Height="180" AutoGenerateColumns="False">
+                            <DataGrid ItemsSource="{Binding Holidays}" Height="160" AutoGenerateColumns="False">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Date" Binding="{Binding Date}" Width="*"/>
                                     <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*"/>
                                     <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="*"/>
+                                    <DataGridTemplateColumn Header="" Width="48">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate x:DataType="core:Holiday">
+                                                <Button Classes="icon-button"
+                                                        Command="{Binding #CalendarsRoot.((vm:CalendarsViewModel)DataContext).RemoveHolidayCommand}"
+                                                        CommandParameter="{Binding}">
+                                                    <PathIcon Data="{StaticResource Icon.Close}" Width="12" Height="12"/>
+                                                </Button>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
+                            <Grid ColumnDefinitions="1.4*,0.9*,0.9*,Auto" ColumnSpacing="8">
+                                <TextBox Classes="form-field" Watermark="Holiday name" Text="{Binding DraftHolidayName}"/>
+                                <TextBox Grid.Column="1" Classes="form-field" Watermark="YYYY-MM-DD" Text="{Binding DraftHolidayDate}"/>
+                                <ComboBox Grid.Column="2" ItemsSource="{Binding HolidayTypes}" SelectedItem="{Binding DraftHolidayType}"/>
+                                <Button Grid.Column="3" Classes="ghost" Content="Add" Command="{Binding AddHolidayCommand}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Maintenance windows" Classes="section-title"/>
+                            <ItemsControl ItemsSource="{Binding MaintenanceWindows}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="core:MaintenanceWindow">
+                                        <Border Padding="10" Margin="0,0,0,8" Background="{DynamicResource SurfaceBrush}" CornerRadius="8">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Description}" Foreground="{DynamicResource TextBrush}"/>
+                                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                                        <TextBlock Text="{Binding StartTime}" Classes="caption"/>
+                                                        <TextBlock Text="→" Classes="caption"/>
+                                                        <TextBlock Text="{Binding EndTime}" Classes="caption"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                                <Button Grid.Column="1" Classes="icon-button"
+                                                        Command="{Binding #CalendarsRoot.((vm:CalendarsViewModel)DataContext).RemoveMaintenanceCommand}"
+                                                        CommandParameter="{Binding}">
+                                                    <PathIcon Data="{StaticResource Icon.Close}" Width="12" Height="12"/>
+                                                </Button>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Grid ColumnDefinitions="1.6*,1*,1*,Auto" ColumnSpacing="8">
+                                <TextBox Classes="form-field" Watermark="Description" Text="{Binding DraftWindowDescription}"/>
+                                <TextBox Grid.Column="1" Classes="form-field" Watermark="Start UTC" Text="{Binding DraftWindowStart}"/>
+                                <TextBox Grid.Column="2" Classes="form-field" Watermark="End UTC" Text="{Binding DraftWindowEnd}"/>
+                                <Button Grid.Column="3" Classes="ghost" Content="Add" Command="{Binding AddMaintenanceCommand}"/>
+                            </Grid>
+                            <TextBlock Text="{Binding EditorError}" Foreground="{DynamicResource DangerBrush}"
+                                       IsVisible="{Binding EditorError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>

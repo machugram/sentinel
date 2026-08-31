@@ -41,6 +41,13 @@ public partial class MainWindowViewModel : ViewModelBase, IRecipient<StatusMessa
     [ObservableProperty] private string _paletteQuery = string.Empty;
     [ObservableProperty] private ObservableCollection<CommandPaletteItem> _paletteResults = new();
     [ObservableProperty] private CommandPaletteItem? _selectedPaletteItem;
+    [ObservableProperty] private bool _isConfirmOpen;
+    [ObservableProperty] private string _confirmTitle = string.Empty;
+    [ObservableProperty] private string _confirmMessage = string.Empty;
+    [ObservableProperty] private string _confirmLabel = "Confirm";
+    [ObservableProperty] private bool _confirmIsDanger;
+
+    private Action? _confirmAction;
 
     public double SidebarWidth => IsSidebarExpanded ? 252 : 76;
 
@@ -77,6 +84,10 @@ public partial class MainWindowViewModel : ViewModelBase, IRecipient<StatusMessa
         WeakReferenceMessenger.Default.Register<NavigateRequest>(this, (_, request) =>
         {
             Dispatcher.UIThread.Post(() => _ = ApplyNavigateRequestAsync(request));
+        });
+        WeakReferenceMessenger.Default.Register<ConfirmRequest>(this, (_, request) =>
+        {
+            Dispatcher.UIThread.Post(() => ShowConfirm(request));
         });
         CurrentView = GetView<DashboardViewModel>("Dashboard");
         MarkActive("Dashboard");
@@ -189,10 +200,49 @@ public partial class MainWindowViewModel : ViewModelBase, IRecipient<StatusMessa
     }
 
     [RelayCommand]
+    private void HandleEscape()
+    {
+        if (IsConfirmOpen)
+        {
+            CancelConfirm();
+            return;
+        }
+
+        if (IsPaletteOpen)
+            ClosePalette();
+    }
+
+    [RelayCommand]
     private void ClosePalette()
     {
         IsPaletteOpen = false;
         PaletteQuery = string.Empty;
+    }
+
+    private void ShowConfirm(ConfirmRequest request)
+    {
+        ConfirmTitle = request.Title;
+        ConfirmMessage = request.Message;
+        ConfirmLabel = request.ConfirmLabel;
+        ConfirmIsDanger = request.IsDanger;
+        _confirmAction = request.OnConfirm;
+        IsConfirmOpen = true;
+    }
+
+    [RelayCommand]
+    private void CancelConfirm()
+    {
+        IsConfirmOpen = false;
+        _confirmAction = null;
+    }
+
+    [RelayCommand]
+    private void AcceptConfirm()
+    {
+        var action = _confirmAction;
+        IsConfirmOpen = false;
+        _confirmAction = null;
+        action?.Invoke();
     }
 
     [RelayCommand]
@@ -302,7 +352,7 @@ public partial class MainWindowViewModel : ViewModelBase, IRecipient<StatusMessa
         switch (request.ViewKey)
         {
             case "Runs":
-                await GetView<RunsViewModel>("Runs").FocusRunAsync(request.EntityId);
+                await GetView<RunsViewModel>("Runs").ApplyIncomingAsync(request.EntityId, request.Filter);
                 break;
             case "Alerts":
                 await GetView<AlertsViewModel>("Alerts").FocusAlertAsync(request.EntityId);
@@ -327,6 +377,18 @@ public partial class MainWindowViewModel : ViewModelBase, IRecipient<StatusMessa
     {
         LastRefreshed = message.When.ToLocalTime();
         _ = RefreshAlertBadgeAsync();
+        switch (CurrentView)
+        {
+            case DashboardViewModel dashboard:
+                dashboard.RefreshQuiet();
+                break;
+            case RunsViewModel runs:
+                runs.RefreshQuiet();
+                break;
+            case WorkflowListViewModel workflows:
+                workflows.RefreshQuiet();
+                break;
+        }
     }
 
     private async Task HideToastAsync()

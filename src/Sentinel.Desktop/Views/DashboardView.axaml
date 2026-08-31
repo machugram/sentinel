@@ -29,39 +29,47 @@
                 </Grid>
 
                 <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
-                    <Border Classes="stat-card">
-                        <StackPanel>
-                            <TextBlock Text="Active workflows" Classes="caption"/>
-                            <TextBlock Text="{Binding ActiveWorkflows}" Classes="metric" Margin="0,8,0,0"/>
-                            <TextBlock Text="{Binding ActiveTrend}" Classes="caption" Margin="0,6,0,0"/>
-                        </StackPanel>
-                    </Border>
-                    <Border Grid.Column="1" Classes="stat-card">
-                        <StackPanel>
-                            <TextBlock Text="Running jobs" Classes="caption"/>
-                            <TextBlock Text="{Binding RunningJobs}" Classes="metric" Foreground="{DynamicResource AccentBrush}" Margin="0,8,0,0"/>
-                            <TextBlock Text="{Binding RunningTrend}" Classes="caption" Margin="0,6,0,0"/>
-                        </StackPanel>
-                    </Border>
-                    <Border Grid.Column="2" Classes="stat-card">
-                        <StackPanel>
-                            <TextBlock Text="Success rate (24h)" Classes="caption"/>
-                            <StackPanel Orientation="Horizontal" Spacing="2" Margin="0,8,0,0">
-                                <TextBlock Text="{Binding SuccessRate}" FontSize="28" FontWeight="Bold"
-                                           Foreground="{Binding SuccessRate, Converter={StaticResource PercentageToColor}}"/>
-                                <TextBlock Text="%" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Bottom" Margin="0,0,0,4"
-                                           Foreground="{Binding SuccessRate, Converter={StaticResource PercentageToColor}}"/>
+                    <Button Classes="row-button" Command="{Binding OpenWorkflowsCommand}">
+                        <Border Classes="stat-card">
+                            <StackPanel>
+                                <TextBlock Text="Active workflows" Classes="caption"/>
+                                <TextBlock Text="{Binding ActiveWorkflows}" Classes="metric" Margin="0,8,0,0"/>
+                                <TextBlock Text="{Binding ActiveTrend}" Classes="caption" Margin="0,6,0,0"/>
                             </StackPanel>
-                            <TextBlock Text="{Binding SuccessTrend}" Classes="caption" Margin="0,6,0,0"/>
-                        </StackPanel>
-                    </Border>
-                    <Border Grid.Column="3" Classes="stat-card">
-                        <StackPanel>
-                            <TextBlock Text="Pending alerts" Classes="caption"/>
-                            <TextBlock Text="{Binding PendingAlerts}" Classes="metric" Foreground="{DynamicResource WarningBrush}" Margin="0,8,0,0"/>
-                            <TextBlock Text="{Binding AlertTrend}" Classes="caption" Margin="0,6,0,0"/>
-                        </StackPanel>
-                    </Border>
+                        </Border>
+                    </Button>
+                    <Button Grid.Column="1" Classes="row-button" Command="{Binding OpenRunningJobsCommand}">
+                        <Border Classes="stat-card">
+                            <StackPanel>
+                                <TextBlock Text="Running jobs" Classes="caption"/>
+                                <TextBlock Text="{Binding RunningJobs}" Classes="metric" Foreground="{DynamicResource AccentBrush}" Margin="0,8,0,0"/>
+                                <TextBlock Text="{Binding RunningTrend}" Classes="caption" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Button>
+                    <Button Grid.Column="2" Classes="row-button" Command="{Binding OpenRunsCommand}">
+                        <Border Classes="stat-card">
+                            <StackPanel>
+                                <TextBlock Text="Success rate (24h)" Classes="caption"/>
+                                <StackPanel Orientation="Horizontal" Spacing="2" Margin="0,8,0,0">
+                                    <TextBlock Text="{Binding SuccessRate}" FontSize="28" FontWeight="Bold"
+                                               Foreground="{Binding SuccessRate, Converter={StaticResource PercentageToColor}}"/>
+                                    <TextBlock Text="%" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Bottom" Margin="0,0,0,4"
+                                               Foreground="{Binding SuccessRate, Converter={StaticResource PercentageToColor}}"/>
+                                </StackPanel>
+                                <TextBlock Text="{Binding SuccessTrend}" Classes="caption" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Button>
+                    <Button Grid.Column="3" Classes="row-button" Command="{Binding OpenAlertsCommand}">
+                        <Border Classes="stat-card">
+                            <StackPanel>
+                                <TextBlock Text="Pending alerts" Classes="caption"/>
+                                <TextBlock Text="{Binding PendingAlerts}" Classes="metric" Foreground="{DynamicResource WarningBrush}" Margin="0,8,0,0"/>
+                                <TextBlock Text="{Binding AlertTrend}" Classes="caption" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Button>
                 </Grid>
 
                 <Grid ColumnDefinitions="1.6*,*" ColumnSpacing="12">

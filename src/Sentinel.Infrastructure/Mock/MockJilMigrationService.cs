@@ -88,7 +88,8 @@ public sealed class MockJilMigrationService : IJilMigrationService
             {
                 ["Source"] = "JIL",
                 ["Machine"] = job.Machine ?? "",
-                ["Owner"] = job.Owner ?? ""
+                ["Owner"] = job.Owner ?? "",
+                ["Condition"] = job.Condition ?? ""
             },
             Tasks =
             {
@@ -97,7 +98,7 @@ public sealed class MockJilMigrationService : IJilMigrationService
                     Id = Guid.NewGuid(),
                     Name = job.JobName,
                     Type = job.JobType == JilJobType.FileWatcher ? TaskType.Custom : TaskType.Shell,
-                    Command = job.Command ?? job.JobName,
+                    Command = job.Command ?? (job.RawAttributes.TryGetValue("watch_file", out var watch) ? watch : job.JobName),
                     Status = Core.Models.TaskStatus.Pending
                 }
             }

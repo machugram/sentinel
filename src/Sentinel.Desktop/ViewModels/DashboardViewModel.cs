@@ -90,17 +90,23 @@ public partial class DashboardViewModel : ViewModelBase, IAsyncDisposable
     }
 
     [RelayCommand]
-    private async Task RefreshDataAsync()
+    private Task RefreshDataAsync() => RefreshCoreAsync(showSpinner: true, announce: true);
+
+    public void RefreshQuiet() => _ = RefreshCoreAsync(showSpinner: false, announce: false);
+
+    private async Task RefreshCoreAsync(bool showSpinner, bool announce)
     {
         if (_workflowService is null || _runService is null || _alertService is null)
             return;
-        if (IsLoading) return;
+        if (showSpinner && IsLoading)
+            return;
 
-        IsLoading = true;
+        if (showSpinner)
+            IsLoading = true;
         try
         {
             var workflowsTask = _workflowService.GetAllWorkflowsAsync();
-            var runsTask = _runService.GetRecentRunsAsync(10);
+            var runsTask = _runService.GetRecentRunsAsync(50);
             var alertsTask = _alertService.GetActiveAlertsAsync();
             await Task.WhenAll(workflowsTask, runsTask, alertsTask);
 
@@ -140,7 +146,8 @@ public partial class DashboardViewModel : ViewModelBase, IAsyncDisposable
                     new AlertItem(a.Id, a.Title, a.Message, a.Severity, a.CreatedAt, a.AiSuggestion, a.WorkflowRunId)));
 
             LastRefreshed = DateTime.Now;
-            WeakReferenceMessenger.Default.Send(new DataRefreshedMessage(DateTime.UtcNow));
+            if (announce)
+                WeakReferenceMessenger.Default.Send(new DataRefreshedMessage(DateTime.UtcNow));
         }
         catch (Exception ex)
         {
@@ -218,6 +225,18 @@ public partial class DashboardViewModel : ViewModelBase, IAsyncDisposable
         else
             WeakReferenceMessenger.Default.Send(new NavigateRequest("Alerts", item.Id));
     }
+
+    [RelayCommand]
+    private void OpenWorkflows() => WeakReferenceMessenger.Default.Send(new NavigateRequest("Workflows"));
+
+    [RelayCommand]
+    private void OpenRunningJobs() => WeakReferenceMessenger.Default.Send(new NavigateRequest("Runs", Filter: "Running"));
+
+    [RelayCommand]
+    private void OpenRuns() => WeakReferenceMessenger.Default.Send(new NavigateRequest("Runs"));
+
+    [RelayCommand]
+    private void OpenAlerts() => WeakReferenceMessenger.Default.Send(new NavigateRequest("Alerts"));
 }
 
 public record RecentRunItem(Guid RunId, string WorkflowName, RunStatus Status, TimeSpan? Duration, DateTime StartedAt, bool ExceedsSla = false)

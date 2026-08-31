@@ -15,6 +15,7 @@ public partial class MigrationWizardViewModel : ViewModelBase
     private readonly IJilMigrationService? _migrationService;
     private readonly IWorkflowService? _workflowService;
     private readonly IFilePickerService? _filePicker;
+    private List<JilJob> _parsedJobs = [];
 
     [ObservableProperty] private int _currentStep = 1;
     [ObservableProperty] private string _jilFilePath = string.Empty;
@@ -107,6 +108,7 @@ public partial class MigrationWizardViewModel : ViewModelBase
         try
         {
             var jobs = (await _migrationService.ParseJilFileAsync(JilContent)).ToList();
+            _parsedJobs = jobs;
             ImportedJobs.Clear();
             foreach (var job in jobs)
             {
@@ -144,10 +146,40 @@ public partial class MigrationWizardViewModel : ViewModelBase
                 return;
             }
 
-            foreach (var preview in ImportedJobs.ToList())
+            foreach (var job in _parsedJobs)
             {
-                var result = await ConvertSingleJobAsync(preview);
-                ConversionResults.Add(result);
+                var preview = ImportedJobs.FirstOrDefault(p => p.JobName == job.JobName);
+                var conversion = await _migrationService.ConvertJobAsync(job);
+                var workflow = conversion.ConvertedWorkflow;
+                if (workflow is not null)
+                {
+                    workflow.Status = WorkflowStatus.Draft;
+                    if (workflow.Tasks.Count > 1)
+                    {
+                        workflow.Dependencies = Enumerable.Range(1, workflow.Tasks.Count - 1)
+                            .Select(i => new TaskDependency
+                            {
+                                FromTaskId = workflow.Tasks[i - 1].Id,
+                                ToTaskId = workflow.Tasks[i].Id
+                            })
+                            .ToList();
+                    }
+                }
+
+                var notes = preview?.RiskLevel == "low" && SkipValidationForLowRisk
+                    ? "Validation skipped (low risk)"
+                    : preview?.RiskLevel == "medium" || preview?.RiskLevel == "high"
+                        ? "Needs validation"
+                        : conversion.Issues.FirstOrDefault()?.Message ?? "Converted";
+
+                ConversionResults.Add(new ConversionResult(
+                    job.JobName,
+                    workflow is null ? "failed" : "success",
+                    preview?.Confidence ?? 0,
+                    workflow?.Id.ToString("N")[..8] ?? "",
+                    notes,
+                    workflow,
+                    job.Command ?? job.RawAttributes.GetValueOrDefault("watch_file") ?? ""));
             }
             CurrentStep = 3;
         }
@@ -164,18 +196,13 @@ public partial class MigrationWizardViewModel : ViewModelBase
         try
         {
             ImportedWorkflowCount = 0;
-            if (_workflowService is not null && _migrationService is not null)
+            if (_workflowService is not null)
             {
-                foreach (var result in ConversionResults.Where(r => r.Status == "success"))
+                foreach (var result in ConversionResults.Where(r => r.Status == "success" && r.Workflow is not null))
                 {
-                    var job = new JilJob { JobName = result.JobName };
-                    var converted = await _migrationService.ConvertJobAsync(job);
-                    if (converted.ConvertedWorkflow is not null)
-                    {
-                        converted.ConvertedWorkflow.Status = WorkflowStatus.Draft;
-                        await _workflowService.CreateWorkflowAsync(converted.ConvertedWorkflow);
-                        ImportedWorkflowCount++;
-                    }
+                    result.Workflow!.Status = WorkflowStatus.Draft;
+                    await _workflowService.CreateWorkflowAsync(result.Workflow);
+                    ImportedWorkflowCount++;
                 }
             }
             else
@@ -205,6 +232,7 @@ public partial class MigrationWizardViewModel : ViewModelBase
         CurrentStep = 1;
         ConversionResults.Clear();
         ImportedJobs.Clear();
+        _parsedJobs = [];
         ImportedWorkflowCount = 0;
     }
 
@@ -212,25 +240,6 @@ public partial class MigrationWizardViewModel : ViewModelBase
     private void OpenDrafts()
     {
         WeakReferenceMessenger.Default.Send(new NavigateRequest("Workflows", Filter: "Draft"));
-    }
-
-    private async Task<ConversionResult> ConvertSingleJobAsync(JilJobPreview job)
-    {
-        try
-        {
-            var jilJob = new JilJob { JobName = job.JobName, Command = "migrated", JobType = JilJobType.Command };
-            var conversionResult = await _migrationService!.ConvertJobAsync(jilJob);
-            return new ConversionResult(
-                job.JobName,
-                "success",
-                job.Confidence,
-                conversionResult.ConvertedWorkflow?.Id.ToString("N")[..8] ?? "",
-                job.RiskLevel == "low" && SkipValidationForLowRisk ? "Validation skipped (low risk)" : "Needs validation");
-        }
-        catch (Exception ex)
-        {
-            return new ConversionResult(job.JobName, "failed", 0, "", ex.Message);
-        }
     }
 
     private void RecalculateRisk()
@@ -273,4 +282,11 @@ public record JilJobPreview(string JobName, string JobType, double Confidence, s
     public string RiskText => RiskLevel.ToUpperInvariant();
 }
 
-public record ConversionResult(string JobName, string Status, double Confidence, string WorkflowId, string Notes);
+public record ConversionResult(
+    string JobName,
+    string Status,
+    double Confidence,
+    string WorkflowId,
+    string Notes,
+    Workflow? Workflow = null,
+    string Command = "");

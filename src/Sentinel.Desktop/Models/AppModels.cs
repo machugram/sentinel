@@ -36,6 +36,13 @@ public record NavigateRequest(
     string? Filter = null,
     bool OpenCreate = false);
 
+public record ConfirmRequest(
+    string Title,
+    string Message,
+    string ConfirmLabel,
+    bool IsDanger,
+    Action OnConfirm);
+
 public sealed class CommandPaletteItem
 {
     public required string Title { get; init; }

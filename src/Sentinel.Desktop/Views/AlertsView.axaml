@@ -42,7 +42,9 @@
 
         <Grid Grid.Row="2" ColumnDefinitions="1.3*,*" ColumnSpacing="12">
             <Border Classes="card" Padding="0">
-                <ListBox ItemsSource="{Binding Alerts}" SelectedItem="{Binding SelectedAlert}" Background="Transparent" BorderThickness="0">
+                <Grid>
+                <ListBox ItemsSource="{Binding Alerts}" SelectedItem="{Binding SelectedAlert}" Background="Transparent" BorderThickness="0"
+                         IsVisible="{Binding HasAlerts}">
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="core:Alert">
                             <Border Padding="12" Margin="4" CornerRadius="8" Background="{DynamicResource SurfaceBrush}"
@@ -59,10 +61,18 @@
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
+                <TextBlock Text="No active alerts." Classes="empty-state"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           IsVisible="{Binding !HasAlerts}"/>
+                </Grid>
             </Border>
 
             <Border Grid.Column="1" Classes="card">
-                <StackPanel Spacing="12">
+                <Panel>
+                <TextBlock Text="Select an alert to review." Classes="empty-state"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           IsVisible="{Binding !HasSelection}"/>
+                <StackPanel Spacing="12" IsVisible="{Binding HasSelection}">
                     <TextBlock Text="{Binding SelectedAlert.Title}" Classes="section-title" TextWrapping="Wrap"/>
                     <Border Classes="status-pill" HorizontalAlignment="Left"
                             Background="{Binding SelectedAlert.Severity, Converter={StaticResource SeverityToBackground}}">
@@ -86,6 +96,7 @@
                                 CommandParameter="{Binding SelectedAlert}"/>
                     </StackPanel>
                 </StackPanel>
+                </Panel>
             </Border>
         </Grid>
     </Grid>

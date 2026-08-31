@@ -5,12 +5,14 @@ using CommunityToolkit.Mvvm.Messaging;
 using Sentinel.Core.Interfaces;
 using Sentinel.Core.Models;
 using Sentinel.Desktop.Models;
+using Sentinel.Desktop.Services;
 
 namespace Sentinel.Desktop.ViewModels;
 
 public partial class AuditViewModel : ViewModelBase
 {
     private readonly IAuditService? _auditService;
+    private readonly IFilePickerService? _filePicker;
     private List<AuditLogEntry> _all = new();
 
     [ObservableProperty] private string _searchQuery = string.Empty;
@@ -28,9 +30,10 @@ public partial class AuditViewModel : ViewModelBase
         ApplyFilters();
     }
 
-    public AuditViewModel(IAuditService auditService)
+    public AuditViewModel(IAuditService auditService, IFilePickerService filePicker)
     {
         _auditService = auditService;
+        _filePicker = filePicker;
         _ = LoadAsync();
     }
 
@@ -56,16 +59,43 @@ public partial class AuditViewModel : ViewModelBase
     [RelayCommand]
     private async Task ExportAsync(string? format)
     {
+        var parsed = string.Equals(format, "csv", StringComparison.OrdinalIgnoreCase) ? ExportFormat.Csv : ExportFormat.Ndjson;
+        string content;
         if (_auditService is null)
         {
-            ExportStatus = $"Exported {Entries.Count} records (mock)";
-            WeakReferenceMessenger.Default.Send(new StatusMessage(ExportStatus));
-            return;
+            content = parsed == ExportFormat.Csv
+                ? "timestamp,action,entityType,userName,newValue\n" + string.Join('\n', Entries.Select(e => $"{e.Timestamp:O},{e.Action},{e.EntityType},{e.UserName},{e.NewValue}"))
+                : string.Join('\n', Entries.Select(e => $"{{\"timestamp\":\"{e.Timestamp:O}\",\"action\":\"{e.Action}\"}}"));
+        }
+        else
+        {
+            await using var stream = await _auditService.ExportAuditLogsAsync(DateTime.UtcNow.AddDays(-30), DateTime.UtcNow, parsed);
+            using var reader = new StreamReader(stream);
+            content = await reader.ReadToEndAsync();
         }
 
-        var parsed = string.Equals(format, "csv", StringComparison.OrdinalIgnoreCase) ? ExportFormat.Csv : ExportFormat.Ndjson;
-        await using var stream = await _auditService.ExportAuditLogsAsync(DateTime.UtcNow.AddDays(-30), DateTime.UtcNow, parsed);
-        ExportStatus = $"Exported {Entries.Count} records as {parsed}";
+        var extension = parsed == ExportFormat.Csv ? "csv" : "ndjson";
+        var suggested = $"sentinel-audit-{DateTime.UtcNow:yyyyMMdd-HHmm}.{extension}";
+        string? path = null;
+        if (_filePicker is not null)
+        {
+            path = await _filePicker.SaveTextFileAsync(
+                "Export audit log",
+                suggested,
+                content,
+                parsed == ExportFormat.Csv ? "CSV" : "NDJSON",
+                [$"*.{extension}"]);
+        }
+
+        if (path is null)
+        {
+            var fallbackDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Sentinel", "exports");
+            Directory.CreateDirectory(fallbackDir);
+            path = Path.Combine(fallbackDir, suggested);
+            await File.WriteAllTextAsync(path, content);
+        }
+
+        ExportStatus = $"Wrote {Entries.Count} records to {path}";
         WeakReferenceMessenger.Default.Send(new StatusMessage(ExportStatus));
     }
 

@@ -2,12 +2,15 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Sentinel.Desktop.Models;
 using Sentinel.Desktop.Services;
 using Sentinel.Desktop.ViewModels;
 using Sentinel.Desktop.Views;
 using Sentinel.Infrastructure;
+using Sentinel.Infrastructure.Mock;
 
 namespace Sentinel.Desktop;
 
@@ -26,6 +29,13 @@ public partial class App : Application
         ConfigureServices(collection);
         Services = collection.BuildServiceProvider();
 
+        var catalog = Services.GetRequiredService<IDemoCatalogService>();
+        catalog.CatalogChanged += (_, _) =>
+        {
+            Dispatcher.UIThread.Post(() =>
+                WeakReferenceMessenger.Default.Send(new DataRefreshedMessage(DateTime.UtcNow)));
+        };
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             DisableAvaloniaDataAnnotationValidation();
@@ -43,13 +53,7 @@ public partial class App : Application
 
     private static void ConfigureServices(IServiceCollection services)
     {
-        services.AddSingleton(new AppConfiguration
-        {
-            EnableRealtime = false,
-            Theme = "Dark",
-            DashboardRefreshIntervalSeconds = 30,
-            EnableNotifications = true
-        });
+        services.AddSingleton(AppConfigurationStore.Load());
         services.AddSentinelInfrastructureMock();
         services.AddSingleton<IFilePickerService, AvaloniaFilePickerService>();
         services.AddTransient<MainWindowViewModel>();

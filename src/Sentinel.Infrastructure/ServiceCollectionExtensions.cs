@@ -27,6 +27,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<IAuthService, MockAuthService>();
         services.AddSingleton<MockDataStore>();
+        services.AddSingleton<IDemoCatalogService>(sp => sp.GetRequiredService<MockDataStore>());
         services.AddSingleton<IWorkflowService, MockWorkflowService>();
         services.AddSingleton<IWorkflowRunService, MockWorkflowRunService>();
         services.AddSingleton<IAlertService, MockAlertService>();

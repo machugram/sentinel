@@ -29,9 +29,11 @@
 
         <Grid Grid.Row="1" ColumnDefinitions="1.4*,*" ColumnSpacing="12">
             <Border Classes="card" Padding="0">
-                <DataGrid ItemsSource="{Binding Runs}"
-                          SelectedItem="{Binding SelectedRun}"
-                          AutoGenerateColumns="False">
+                <Grid>
+                    <DataGrid ItemsSource="{Binding Runs}"
+                              SelectedItem="{Binding SelectedRun}"
+                              AutoGenerateColumns="False"
+                              IsVisible="{Binding HasRuns}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Workflow" Binding="{Binding WorkflowName}" Width="2*"/>
                         <DataGridTemplateColumn Header="Status" Width="110">
@@ -50,9 +52,17 @@
                         <DataGridTextColumn Header="Duration" Binding="{Binding Duration, Converter={StaticResource Duration}}" Width="100"/>
                     </DataGrid.Columns>
                 </DataGrid>
+                    <TextBlock Text="{Binding EmptyMessage}" Classes="empty-state"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               IsVisible="{Binding !HasRuns}"/>
+                </Grid>
             </Border>
 
             <Border Grid.Column="1" Classes="card">
+                <Panel>
+                <TextBlock Text="Select a run to inspect tasks and logs." Classes="empty-state"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           IsVisible="{Binding !HasSelection}"/>
                 <Grid RowDefinitions="Auto,Auto,Auto,*,*" IsVisible="{Binding HasSelection}">
                     <StackPanel>
                         <TextBlock Text="{Binding SelectedRun.WorkflowName}" Classes="section-title"/>
@@ -101,6 +111,7 @@
                         </Grid>
                     </Border>
                 </Grid>
+                </Panel>
             </Border>
         </Grid>
     </Grid>

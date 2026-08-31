@@ -3,12 +3,14 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Sentinel.Desktop.Models;
 using Sentinel.Desktop.Services;
+using Sentinel.Infrastructure.Mock;
 
 namespace Sentinel.Desktop.ViewModels;
 
 public partial class SettingsViewModel : ViewModelBase
 {
     private readonly AppConfiguration _config;
+    private readonly IDemoCatalogService? _catalog;
 
     [ObservableProperty] private string _apiBaseUrl;
     [ObservableProperty] private int _refreshIntervalSeconds;
@@ -19,13 +21,14 @@ public partial class SettingsViewModel : ViewModelBase
 
     public IReadOnlyList<string> ThemeOptions { get; } = new[] { "Dark", "Light" };
 
-    public SettingsViewModel() : this(new AppConfiguration())
+    public SettingsViewModel() : this(new AppConfiguration(), null)
     {
     }
 
-    public SettingsViewModel(AppConfiguration config)
+    public SettingsViewModel(AppConfiguration config, IDemoCatalogService? catalog)
     {
         _config = config;
+        _catalog = catalog;
         _apiBaseUrl = config.ApiBaseUrl;
         _refreshIntervalSeconds = config.DashboardRefreshIntervalSeconds;
         _theme = config.Theme;
@@ -50,7 +53,8 @@ public partial class SettingsViewModel : ViewModelBase
         _config.EnableRealtime = EnableRealtime;
         _config.EnableTelemetry = EnableTelemetry;
         ThemeManager.Apply(_config.Theme);
-        WeakReferenceMessenger.Default.Send(new StatusMessage("Settings saved for this session"));
+        AppConfigurationStore.Save(_config);
+        WeakReferenceMessenger.Default.Send(new StatusMessage("Settings saved on this machine"));
     }
 
     [RelayCommand]
@@ -63,5 +67,20 @@ public partial class SettingsViewModel : ViewModelBase
         EnableRealtime = false;
         EnableTelemetry = false;
         Save();
+    }
+
+    [RelayCommand]
+    private void ResetDemoData()
+    {
+        WeakReferenceMessenger.Default.Send(new ConfirmRequest(
+            "Reset demo data",
+            "Replace the local mock catalog with the original seed workflows, runs, and alerts? Your created workflows will be removed.",
+            "Reset catalog",
+            true,
+            () =>
+            {
+                _catalog?.ResetToSeed();
+                WeakReferenceMessenger.Default.Send(new StatusMessage("Demo catalog reset to seed data"));
+            }));
     }
 }

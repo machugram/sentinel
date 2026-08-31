@@ -24,6 +24,8 @@ public partial class AlertsViewModel : ViewModelBase
     public int WarningCount => _all.Count(a => a.Severity == AlertSeverity.Warning && a.ResolvedAt is null);
     public int InfoCount => _all.Count(a => a.Severity == AlertSeverity.Info && a.ResolvedAt is null);
     public bool CanOpenRun => SelectedAlert?.WorkflowRunId is Guid runId && runId != Guid.Empty;
+    public bool HasAlerts => Alerts.Count > 0;
+    public bool HasSelection => SelectedAlert is not null;
 
     public AlertsViewModel()
     {
@@ -42,7 +44,12 @@ public partial class AlertsViewModel : ViewModelBase
     }
 
     partial void OnSeverityFilterChanged(string value) => ApplyFilters();
-    partial void OnSelectedAlertChanged(Alert? value) => OnPropertyChanged(nameof(CanOpenRun));
+
+    partial void OnSelectedAlertChanged(Alert? value)
+    {
+        OnPropertyChanged(nameof(CanOpenRun));
+        OnPropertyChanged(nameof(HasSelection));
+    }
 
     [RelayCommand]
     private async Task LoadAsync()
@@ -111,5 +118,6 @@ public partial class AlertsViewModel : ViewModelBase
             query = query.Where(a => a.Severity.ToString().Equals(SeverityFilter, StringComparison.OrdinalIgnoreCase));
         Alerts = new ObservableCollection<Alert>(query.OrderByDescending(a => a.CreatedAt));
         SelectedAlert ??= Alerts.FirstOrDefault();
+        OnPropertyChanged(nameof(HasAlerts));
     }
 }

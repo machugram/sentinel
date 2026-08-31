@@ -42,7 +42,7 @@ public partial class WorkflowListViewModel : ViewModelBase
 
     public IReadOnlyList<string> StatusOptions { get; } = new[] { "All", "Active", "Paused", "Draft", "Archived" };
     public IReadOnlyList<string> RegionOptions { get; } = new[] { "All", "Americas", "EMEA", "APAC", "Global" };
-    public IReadOnlyList<string> EditorStatusOptions { get; } = new[] { "Active", "Draft", "Paused" };
+    public IReadOnlyList<string> EditorStatusOptions { get; } = new[] { "Active", "Draft", "Paused", "Archived" };
     public IReadOnlyList<string> EditorRegionOptions { get; } = new[] { "Americas", "EMEA", "APAC", "Global" };
     public IReadOnlyList<string> SchedulePresets { get; } =
     [
@@ -58,6 +58,11 @@ public partial class WorkflowListViewModel : ViewModelBase
     ];
     public IReadOnlyList<string> TaskTypes { get; } = ["Shell", "Docker", "Http", "Python", "Kafka", "Custom"];
     public bool CanSaveWorkflow => !string.IsNullOrWhiteSpace(DraftName);
+    public bool HasWorkflows => Workflows.Count > 0;
+    public string EmptyMessage =>
+        StatusFilter != "All" || RegionFilter != "All" || !string.IsNullOrWhiteSpace(SearchQuery)
+            ? "No workflows match these filters."
+            : "No workflows yet. Create one or import JIL drafts.";
 
     partial void OnDraftNameChanged(string value)
     {
@@ -102,6 +107,8 @@ public partial class WorkflowListViewModel : ViewModelBase
         SelectedWorkflow = Workflows.FirstOrDefault(w => w.Id == workflowId)
             ?? _all.FirstOrDefault(w => w.Id == workflowId);
     }
+
+    public void RefreshQuiet() => _ = LoadAsync();
 
     [RelayCommand]
     private async Task LoadAsync()
@@ -162,14 +169,155 @@ public partial class WorkflowListViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task TriggerWorkflow(WorkflowListItem? workflow)
+    private void TriggerWorkflow(WorkflowListItem? workflow)
     {
         if (workflow is null || _workflowService is null)
             return;
 
+        WeakReferenceMessenger.Default.Send(new ConfirmRequest(
+            "Run workflow",
+            $"Trigger “{workflow.Name}” now?",
+            "Run now",
+            false,
+            () => _ = TriggerConfirmedAsync(workflow)));
+    }
+
+    private async Task TriggerConfirmedAsync(WorkflowListItem workflow)
+    {
+        if (_workflowService is null)
+            return;
         var run = await _workflowService.TriggerWorkflowAsync(workflow.Id);
         WeakReferenceMessenger.Default.Send(new StatusMessage($"Triggered {workflow.Name}"));
         WeakReferenceMessenger.Default.Send(new NavigateRequest("Runs", run.Id));
+    }
+
+    [RelayCommand]
+    private void ViewRuns(WorkflowListItem? workflow)
+    {
+        if (workflow is null)
+            return;
+        WeakReferenceMessenger.Default.Send(new NavigateRequest("Runs", Filter: workflow.Name));
+    }
+
+    [RelayCommand]
+    private void DuplicateWorkflow(WorkflowListItem? workflow)
+    {
+        if (workflow is null)
+            return;
+        _ = DuplicateAsync(workflow);
+    }
+
+    private async Task DuplicateAsync(WorkflowListItem item)
+    {
+        if (_workflowService is null)
+        {
+            _all.Insert(0, item with { Id = Guid.NewGuid(), Name = item.Name + " (copy)", Status = WorkflowStatus.Draft, TotalRuns = 0 });
+            ApplyFilters();
+            WeakReferenceMessenger.Default.Send(new StatusMessage($"Duplicated {item.Name}"));
+            return;
+        }
+
+        var source = await _workflowService.GetWorkflowByIdAsync(item.Id);
+        if (source is null)
+            return;
+
+        var copy = new Workflow
+        {
+            Name = source.Name + " (copy)",
+            Description = source.Description,
+            Status = WorkflowStatus.Draft,
+            CronExpression = source.CronExpression,
+            Metadata = new Dictionary<string, string>(source.Metadata),
+            Sla = source.Sla,
+            Tags = source.Tags.ToArray(),
+            Tasks = source.Tasks.Select(t => new WorkflowTask
+            {
+                Id = Guid.NewGuid(),
+                Name = t.Name,
+                Type = t.Type,
+                Command = t.Command,
+                Parameters = new Dictionary<string, string>(t.Parameters),
+                RetryCount = t.RetryCount,
+                XPosition = t.XPosition,
+                YPosition = t.YPosition
+            }).ToList()
+        };
+        copy.Dependencies = SequentialDependencies(copy.Tasks);
+        await _workflowService.CreateWorkflowAsync(copy);
+        WeakReferenceMessenger.Default.Send(new StatusMessage($"Duplicated {item.Name}"));
+        await LoadAsync();
+        SelectedWorkflow = Workflows.FirstOrDefault(w => w.Id == copy.Id);
+    }
+
+    [RelayCommand]
+    private void PauseOrResume(WorkflowListItem? workflow)
+    {
+        if (workflow is null)
+            return;
+        var next = workflow.Status == WorkflowStatus.Paused ? WorkflowStatus.Active : WorkflowStatus.Paused;
+        _ = SetStatusAsync(workflow, next);
+    }
+
+    [RelayCommand]
+    private void ArchiveWorkflow(WorkflowListItem? workflow)
+    {
+        if (workflow is null)
+            return;
+        WeakReferenceMessenger.Default.Send(new ConfirmRequest(
+            "Archive workflow",
+            $"Archive “{workflow.Name}”? It will stop scheduling until you activate it again.",
+            "Archive",
+            false,
+            () => _ = SetStatusAsync(workflow, WorkflowStatus.Archived)));
+    }
+
+    [RelayCommand]
+    private void DeleteWorkflow(WorkflowListItem? workflow)
+    {
+        if (workflow is null)
+            return;
+        WeakReferenceMessenger.Default.Send(new ConfirmRequest(
+            "Delete workflow",
+            $"Delete “{workflow.Name}”? This cannot be undone in the mock catalog.",
+            "Delete",
+            true,
+            () => _ = DeleteConfirmedAsync(workflow)));
+    }
+
+    private async Task SetStatusAsync(WorkflowListItem item, WorkflowStatus status)
+    {
+        if (_workflowService is null)
+        {
+            var index = _all.FindIndex(w => w.Id == item.Id);
+            if (index >= 0)
+                _all[index] = _all[index] with { Status = status };
+            ApplyFilters();
+            WeakReferenceMessenger.Default.Send(new StatusMessage($"{item.Name} is {status}"));
+            return;
+        }
+
+        var existing = await _workflowService.GetWorkflowByIdAsync(item.Id);
+        if (existing is null)
+            return;
+        existing.Status = status;
+        await _workflowService.UpdateWorkflowAsync(existing);
+        WeakReferenceMessenger.Default.Send(new StatusMessage($"{item.Name} is {status}"));
+        await LoadAsync();
+    }
+
+    private async Task DeleteConfirmedAsync(WorkflowListItem item)
+    {
+        if (_workflowService is null)
+        {
+            _all.RemoveAll(w => w.Id == item.Id);
+            ApplyFilters();
+            WeakReferenceMessenger.Default.Send(new StatusMessage($"Deleted {item.Name}"));
+            return;
+        }
+
+        await _workflowService.DeleteWorkflowAsync(item.Id);
+        WeakReferenceMessenger.Default.Send(new StatusMessage($"Deleted {item.Name}"));
+        await LoadAsync();
     }
 
     [RelayCommand]
@@ -268,6 +416,7 @@ public partial class WorkflowListViewModel : ViewModelBase
             existing.CronExpression = schedule;
             existing.Sla = sla;
             existing.Tasks = BuildTasks(existing.Tasks, parameters);
+            existing.Dependencies = SequentialDependencies(existing.Tasks);
             ApplyParameters(existing, region, parameters);
             await _workflowService.UpdateWorkflowAsync(existing);
             WeakReferenceMessenger.Default.Send(new StatusMessage($"Updated {name}"));
@@ -282,7 +431,8 @@ public partial class WorkflowListViewModel : ViewModelBase
                 CronExpression = schedule,
                 Metadata = BuildMetadata(region, parameters),
                 Sla = sla,
-                Tasks = tasks
+                Tasks = tasks,
+                Dependencies = SequentialDependencies(tasks)
             };
             await _workflowService.CreateWorkflowAsync(workflow);
             WeakReferenceMessenger.Default.Send(new StatusMessage($"Created {name}"));
@@ -439,6 +589,22 @@ public partial class WorkflowListViewModel : ViewModelBase
         return tasks;
     }
 
+    private static List<TaskDependency> SequentialDependencies(IReadOnlyList<WorkflowTask> tasks)
+    {
+        var dependencies = new List<TaskDependency>();
+        for (var i = 1; i < tasks.Count; i++)
+        {
+            dependencies.Add(new TaskDependency
+            {
+                FromTaskId = tasks[i - 1].Id,
+                ToTaskId = tasks[i].Id,
+                Condition = DependencyCondition.Success
+            });
+        }
+
+        return dependencies;
+    }
+
     private Dictionary<string, string> CollectParameters()
     {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -520,6 +686,8 @@ public partial class WorkflowListViewModel : ViewModelBase
             query = query.Where(w => w.Region.Equals(RegionFilter, StringComparison.OrdinalIgnoreCase));
 
         Workflows = new ObservableCollection<WorkflowListItem>(query);
+        OnPropertyChanged(nameof(HasWorkflows));
+        OnPropertyChanged(nameof(EmptyMessage));
     }
 }
 
@@ -537,6 +705,7 @@ public record WorkflowListItem(
     public string SuccessRateText => $"{SuccessRate:F1}%";
     public string ScheduleDisplay => ScheduleText.ToHuman(Schedule);
     public string SlaDisplay => SlaMinutes is int minutes ? $"{minutes}m" : "—";
+    public string PauseResumeLabel => Status == WorkflowStatus.Paused ? "Resume" : "Pause";
 }
 
 public partial class WorkflowParameterItem : ObservableObject

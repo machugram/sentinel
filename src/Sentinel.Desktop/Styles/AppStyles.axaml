@@ -271,4 +271,12 @@
         <Setter Property="Padding" Value="10,8" />
     </Style>
     
+    <Style Selector="TextBlock.empty-state">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="MaxWidth" Value="360" />
+        <Setter Property="TextAlignment" Value="Center" />
+        <Setter Property="Padding" Value="24" />
+    </Style>
 </Styles>
