@@ -1,389 +1,514 @@
 # Sentinel Orchestrator
 
 **Open-source job orchestration platform for capital-markets workflows**  
-**Status:** v0.1 Foundation (Architecture & Planning Complete) → v1.0 Atlas (March 2027)  
+**Status:** v0.1 desktop operations console (mock catalog) → v1.0 Atlas (March 2027)  
 **License:** Apache 2.0 (Open Source Core) | Commercial (Enterprise Features)
 
-🖥️ **Desktop-First Design:** Like AutoSys WCC, Sentinel provides a powerful cross-platform desktop application (Windows/macOS/Linux) built with Avalonia UI—perfect for operations teams who prefer native apps over web interfaces.
+🖥️ **Desktop-First Design:** Like AutoSys WCC, Sentinel is a cross-platform desktop app (Windows/macOS/Linux) built with Avalonia UI—native, not a browser tab.
 
-🔄 **AutoSys Migration Ready:** Native JIL parser with 12-26 week migration timeline, automated risk classification, and SOAP/REST integration with legacy systems.
+🔄 **AutoSys Migration Ready:** A JIL wizard that parses jobs, classifies risk, converts commands, and imports draft workflows.
 
-⚡ **Agentless-First Execution:** Execute jobs via Kubernetes, Docker, SSH, or cloud-native services—no heavy agents required (unlike AutoSys/Control-M).
+⚡ **Agentless-First Execution (roadmap):** Kubernetes, Docker, SSH, or cloud-native services—no heavy agents required.
+
+This README shows the **running v0.1 console**: screenshots from the live mock catalog, plus flow and sequence diagrams of the operator loop.
 
 ---
 
-## 📋 Project Status
+## Project status
 
 | Component | Status | Target |
 |-----------|:------:|--------|
-| **Architecture & Design** | ✅ Complete | v0.1 (March 2026) |
-| **Domain Models** | ✅ Complete | v0.1 (March 2026) |
-| **Desktop Shell (Avalonia)** | ✅ Complete | v0.1 (March 2026) |
-| **Core Scheduler** | 🔨 Planned | v0.3 (July 2026) |
-| **JIL Migration** | 🔨 Planned | v0.8 (Dec 2026) |
-| **Production Release (v1.0)** | 🎯 Planned | March 2027 |
+| Architecture & Design | Complete | v0.1 |
+| Domain Models | Complete | v0.1 |
+| Desktop shell (Avalonia) | Complete | v0.1 |
+| Operator loop (mock runs, JIL, calendars) | Complete | v0.1 |
+| Core Scheduler | Planned | v0.3 (July 2026) |
+| Production JIL / AutoSys cutover | Planned | v0.8 (Dec 2026) |
+| Production release (v1.0) | Planned | March 2027 |
 
-**See [V1_OPEN_SOURCE_SCOPE.md](docs/V1_OPEN_SOURCE_SCOPE.md) for detailed feature roadmap.**
+v0.1 is a **desktop UX + local mock services**. It does not yet run a scheduler, API, or Postgres. Mock data lives under `%LocalAppData%/Sentinel/` (or the equivalent on macOS/Linux).
 
 ---
+
+## Repository layout
 
 ```
 Sentinel/
 ├── src/
 │   ├── Sentinel.Core/           # Domain models, service interfaces
-│   ├── Sentinel.Desktop/        # Avalonia UI desktop app (Windows/macOS/Linux)
-│   ├── Sentinel.Infrastructure/ # API clients, auth, external services
+│   ├── Sentinel.Desktop/        # Avalonia UI (Windows / macOS / Linux)
+│   ├── Sentinel.Infrastructure/ # Mock catalog, API clients, persistence
 │   └── Sentinel.Shared/         # DTOs, constants, extensions
-├── tests/                       # Unit & integration tests (xUnit)
-├── docs/                        # Architecture, PRD, BRD, technical specs
-│   ├── V1_OPEN_SOURCE_SCOPE.md  # ⭐ v1.0 feature scope & roadmap
-│   ├── ARCHITECTURE.md          # System architecture & patterns
-│   ├── TECHNICAL_SPEC.md        # Detailed technical specifications
-│   ├── SYSTEM_DESIGN.md         # Component design & data models
-│   └── ACCELERATED_MIGRATION.md # 12-week AutoSys migration strategy
-├── .github/
-│   ├── agents/                  # Copilot agents (staff-engineer, qa-engineer, etc.)
-│   └── skills/                  # Domain skills (scheduler, database, etc.)
-└── Sentinel.sln                 # Solution f
+├── tests/                       # xUnit tests
+├── assets/readme/               # Screenshots used in this README
+└── Sentinel.sln
+```
+
+---
+
+## Quick start
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/sentinel.git
+git clone https://github.com/machugram/sentinel.git
 cd sentinel
-
-# Restore dependencies
 dotnet restore
-
-# Run the desktop application
 dotnet run --project src/Sentinel.Desktop
 ```
 
-## 🎯 Why Sentinel vs AutoSys/Control-M
+Shortcuts: `Ctrl+K` command palette, `Ctrl+N` new workflow, `F5` refresh, `Esc` closes confirm then palette.
 
-| Feature | AutoSys/Control-M | Sentinel |
-|---------|-------------------|----------|
-| **Interface** | Java Desktop App (WCC) | .NET Desktop App (Avalonia) + Optional Web UI |
-| **Architecture** | Monolithic, legacy | Cloud-native, microservices |
-| **Execution** | Heavy agents (100MB+ per host) | **Agentless-first** (K8s, SSH, PowerShell) |
-| **APIs** | Limited SOAP/REST | Modern REST + GraphQL + WebSockets **+ SOAP for legacy** |
-| **Migration** | Manual rewrite | **JIL parser with 6-month timeline** |
-| **Cost** | $150K+/year licensing | Open-source core ($0) |
-| **24/7 Trading** | Limited calendar support | Native trading session calendars |
+---
 
-## 🏗️ Architecture
+## Screenshots
 
-Sentinel uses a modern six-component architecture with agentless-first execution:
+All captures are from the native Avalonia app against the **local mock** catalog.
+
+### Operations dashboard
+
+KPI cards jump to Workflows, Running jobs, Runs, or Alerts. Recent runs and the alert list are clickable.
+
+![Operations dashboard](assets/readme/dashboard.jpg)
+
+### Workflows
+
+Schedule in plain language, per-row **Run now**, **View runs**, **Edit**, and a ⋯ menu for Duplicate / Pause / Archive / Delete.
+
+![Workflows list](assets/readme/workflows.jpg)
+
+### Run now confirmation
+
+Destructive and triggering actions go through a confirm overlay before they touch the catalog.
+
+![Run workflow confirmation](assets/readme/run_now_confirm.jpg)
+
+Delete uses the same overlay with a danger button.
+
+![Delete workflow confirmation](assets/readme/delete_confirm.jpg)
+
+### Live run
+
+After confirm, Sentinel opens the new run. Tasks advance sequentially; pending tasks log *waiting on previous task*.
+
+![Live run with sequential task log](assets/readme/live_run.jpg)
+
+### Alert center
+
+KPI and dashboard alerts land here with severity, suggested action, Acknowledge / Open run / Resolve.
+
+![Alert center](assets/readme/alerts.jpg)
+
+### JIL migration
+
+Parse sample AutoSys JIL → classify risk → convert. The convert grid keeps the **real command** (script path, watcher file, and so on), not a reconstructed stub.
+
+![JIL conversion results with Command column](assets/readme/jil_convert.jpg)
+
+Import writes **draft workflows**. Open drafts filters the Workflows grid to `Draft`.
+
+![JIL migration complete](assets/readme/jil_complete.jpg)
+
+![Imported JIL drafts in Workflows](assets/readme/jil_drafts.jpg)
+
+### Trading calendars
+
+Add/remove sessions, holidays, and maintenance windows, then **Save calendar**. The mock catalog persists the object.
+
+![Trading calendars editor](assets/readme/calendars.jpg)
+
+### Settings
+
+Connection, theme, and refresh interval save on this machine. **Reset demo data** asks before replacing the catalog with the seed.
+
+![Reset demo data confirmation](assets/readme/settings_reset.jpg)
+
+---
+
+## Operator flows
+
+How an operator moves through the v0.1 console.
+
+### Screen map
+
+```mermaid
+flowchart LR
+  subgraph Main
+    D[Dashboard]
+    W[Workflows]
+    R[Runs]
+    A[Alerts]
+  end
+  subgraph Tools
+    J[JIL Migration]
+    C[Calendars]
+  end
+  subgraph More
+    U[Audit Logs]
+    S[Settings]
+  end
+  D -->|KPI / row click| W
+  D -->|KPI / recent run| R
+  D -->|KPI / alert row| A
+  W -->|Run now / View runs| R
+  J -->|Open drafts| W
+  S -->|Reset demo| D
+```
+
+### Day-to-day operator loop
+
+```mermaid
+flowchart TD
+  Start([Open Sentinel]) --> Dash[Dashboard]
+  Dash -->|click Running jobs| RunsFilter[Runs filtered to Running]
+  Dash -->|click Pending alerts| Alerts[Alert center]
+  Dash -->|click Active workflows| Wf[Workflows]
+
+  Wf -->|Run now| ConfirmRun{Confirm overlay}
+  ConfirmRun -->|Cancel| Wf
+  ConfirmRun -->|Run now| Trigger[Create Running run]
+  Trigger --> RunsDetail[Runs: select that run]
+  RunsDetail --> Tick[Mock timer 1.2s]
+  Tick --> NextTask[Complete current task / start next]
+  NextTask -->|more tasks| Tick
+  NextTask -->|last task| Success[Run Success + log]
+
+  Wf -->|View runs| RunsNamed[Runs filtered by workflow name]
+  Wf -->|Duplicate| Copy[Draft copy in the grid]
+  Wf -->|Delete / Archive| ConfirmDanger{Danger confirm}
+  ConfirmDanger -->|Cancel| Wf
+  ConfirmDanger -->|accept| Persist[Update mock catalog]
+```
+
+### JIL import path
+
+```mermaid
+flowchart TD
+  A[Paste JIL or Load sample] --> B[Parse jobs]
+  B --> C[Classify: confidence + risk]
+  C --> D[Convert jobs]
+  D --> E[Grid: Job, Status, Command, Workflow, Notes]
+  E --> F[Import drafts]
+  F --> G[Draft workflows in catalog]
+  G --> H[Open drafts in Workflows]
+```
+
+---
+
+## Sequence diagrams
+
+These match the v0.1 wiring: Avalonia view-models, `IWorkflowService` / `IJilMigrationService`, `MockDataStore`, and a 1.2s timer.
+
+### Run now → live task progress
+
+```mermaid
+sequenceDiagram
+  actor Op as Operator
+  participant Wf as WorkflowsView
+  participant Win as MainWindow
+  participant Svc as WorkflowService
+  participant Store as MockDataStore
+  participant Runs as RunsView
+
+  Op->>Wf: Run now
+  Wf->>Win: ConfirmRequest("Trigger … now?")
+  Op->>Win: Accept
+  Win->>Svc: TriggerWorkflowAsync(id)
+  Svc->>Store: Insert Running run + sequential TaskRuns
+  Store->>Store: Persist JSON catalog
+  Wf->>Win: NavigateRequest(Runs, runId)
+  Win->>Runs: Select run, show log
+
+  loop every 1.2s while Status is Running
+    Store->>Store: Advance current task to Success, start next
+    Store->>Store: Persist
+    Store->>Win: CatalogChanged / DataRefreshed
+    Win->>Runs: RefreshQuiet (no spinner)
+  end
+```
+
+### JIL convert and import
+
+```mermaid
+sequenceDiagram
+  actor Op as Operator
+  participant Wiz as MigrationWizard
+  participant Jil as JilMigrationService
+  participant Svc as WorkflowService
+  participant Store as MockDataStore
+  participant Wf as WorkflowsView
+
+  Op->>Wiz: Load sample / Parse jobs
+  Wiz->>Jil: ParseJilFileAsync(text)
+  Jil-->>Wiz: List of JilJob
+  Op->>Wiz: Convert jobs
+  loop each parsed job
+    Wiz->>Jil: ConvertJobAsync(job)
+    Jil-->>Wiz: Workflow + Command (kept on ConversionResult)
+  end
+  Op->>Wiz: Import drafts
+  loop each successful ConversionResult
+    Wiz->>Svc: CreateWorkflowAsync(result.Workflow)
+    Svc->>Store: Persist draft
+  end
+  Op->>Wiz: Open drafts in Workflows
+  Wiz->>Wf: NavigateRequest(Workflows, Filter=Draft)
+```
+
+### Calendar save
+
+```mermaid
+sequenceDiagram
+  actor Op as Operator
+  participant Cal as CalendarsView
+  participant Svc as CalendarService
+  participant Store as MockDataStore
+
+  Op->>Cal: Add session / holiday / window
+  Cal->>Cal: Update in-memory collections
+  Op->>Cal: Save calendar
+  Cal->>Svc: UpdateCalendarAsync(calendar)
+  Svc->>Store: Replace calendar, Persist JSON
+  Store-->>Cal: Status toast "Saved …"
+```
+
+### Confirm overlay (any danger / trigger action)
+
+```mermaid
+sequenceDiagram
+  actor Op as Operator
+  participant View as Any view-model
+  participant Win as MainWindow
+
+  View->>Win: ConfirmRequest(title, message, label, isDanger, onConfirm)
+  Win->>Win: Show overlay (ZIndex 40)
+  alt Cancel or Escape
+    Op->>Win: CancelConfirm
+    Win->>Win: Close overlay
+  else Accept
+    Op->>Win: AcceptConfirm
+    Win->>Win: Close overlay
+    Win->>View: onConfirm()
+  end
+```
+
+---
+
+## Why Sentinel vs AutoSys / Control-M
+
+| Feature | AutoSys / Control-M | Sentinel |
+|---------|---------------------|----------|
+| Interface | Java desktop (WCC) | .NET desktop (Avalonia) + optional web UI later |
+| Architecture | Monolithic, legacy | Cloud-native target; v0.1 is desktop + mock |
+| Execution | Heavy agents | **Agentless-first** (K8s, SSH, PowerShell) on the roadmap |
+| APIs | Limited SOAP/REST | REST + GraphQL + WebSockets **+ SOAP for legacy** (planned) |
+| Migration | Manual rewrite | **JIL wizard** with risk classification |
+| Cost | $150K+/year licensing | Open-source core |
+| 24/7 trading | Limited calendars | Session-aware trading calendars |
+
+---
+
+## Architecture
+
+### What v0.1 actually runs
+
+```mermaid
+flowchart TB
+  subgraph Desktop["Sentinel.Desktop (Avalonia)"]
+    Shell[MainWindow + command palette]
+    VMs[ViewModels]
+    Shell --> VMs
+  end
+
+  subgraph Infra["Sentinel.Infrastructure.Mock"]
+    WF[IWorkflowService]
+    Run[IWorkflowRunService]
+    Alert[IAlertService]
+    Jil[IJilMigrationService]
+    Cal[ICalendarService]
+    Store[MockDataStore + 1.2s timer]
+    WF --> Store
+    Run --> Store
+    Alert --> Store
+    Cal --> Store
+  end
+
+  subgraph Disk["This machine"]
+    JSON[catalog JSON]
+    Cfg[app-settings.json]
+  end
+
+  VMs --> WF
+  VMs --> Run
+  VMs --> Alert
+  VMs --> Jil
+  VMs --> Cal
+  Store --> JSON
+  Shell --> Cfg
+  Store -->|CatalogChanged| Shell
+```
+
+### Target platform (v1.0)
 
 ```mermaid
 graph TB
     subgraph "Client Layer"
-        UI[Web UI/WCC<br/>React 18+<br/>DAG Visualization]
-        CLI[JIL CLI<br/>YAML/JIL Import<br/>Workflow Management]
+        UI[Desktop / Web UI]
+        CLI[JIL CLI]
     end
 
     subgraph "Application Layer"
-        API[Application Server<br/>ASP.NET Core 8<br/>REST/GraphQL/WebSocket<br/>OAuth2 + RBAC]
+        API[Application Server<br/>ASP.NET Core 8]
     end
 
     subgraph "Control Plane"
-        SCHED[Distributed Scheduler<br/>Event Processing<br/>Dependency Resolution<br/>Leader Election<br/>SLA Tracking]
-        DB[(Event Server<br/>PostgreSQL 14+<br/>Time-Series Optimized<br/>Partitioned Tables)]
+        SCHED[Distributed Scheduler]
+        DB[(PostgreSQL event store)]
     end
 
-    subgraph "Execution Layer - Agentless First"
-        K8S[Kubernetes Jobs<br/>Primary Execution]
-        ECS[AWS ECS Tasks<br/>Cloud Native]
-        ACI[Azure Container<br/>Instances]
-        SSH[SSH Executor<br/>Legacy Systems]
-        AGENT[Optional Agent<br/>< 50MB Footprint]
-    end
-
-    subgraph "Observability Stack"
-        LOGS[Structured Logs<br/>Serilog/OpenTelemetry]
-        METRICS[Prometheus<br/>Metrics & Alerting]
-        TRACE[Distributed Tracing<br/>OpenTelemetry]
-    end
-
-    subgraph "External Systems"
-        KAFKA[Kafka/RabbitMQ<br/>Event Triggers]
-        VAULT[Secrets Manager<br/>HashiCorp Vault]
-        CAL[Trading Calendars<br/>Timezone/DST]
+    subgraph "Execution - Agentless First"
+        K8S[Kubernetes Jobs]
+        ECS[AWS ECS]
+        ACI[Azure Container Instances]
+        SSH[SSH Executor]
+        AGENT[Optional Agent]
     end
 
     UI -->|HTTPS/WSS| API
     CLI -->|HTTPS| API
-    API -->|Query/Command| DB
-    API -->|Real-time Updates| UI
-    
-    SCHED -->|Poll Events| DB
-    SCHED -->|Write Status| DB
-    SCHED -->|Dispatch Jobs| K8S
-    SCHED -->|Dispatch Jobs| ECS
-    SCHED -->|Dispatch Jobs| ACI
-    
-    style UI fill:#e1f5ff
-    style CLI fill:#e1f5ff
-    style API fill:#fff4e6
-    style SCHED fill:#f3e5f5
-    style DB fill:#e8f5e9
+    API --> DB
+    SCHED --> DB
+    SCHED --> K8S
+    SCHED --> ECS
+    SCHED --> ACI
+    SCHED --> SSH
+    SCHED --> AGENT
 ```
 
-## 🔄 AutoSys Migration (12-26 weeks)
+### Core components (target)
 
-Sentinel offers **two migration strategies** from AutoSys/Control-M:
-
-### 🚀 Accelerated Migration (12 weeks)
-**Recommended for:** Organizations with strong DevOps teams and appetite for automation
-
-- **Phase 1 (1 week)**: AI-powered job classification and automated environment setup
-- **Phase 2 (2 weeks)**: Parallel pilot with auto-validation for low-risk jobs
-- **Phase 3 (4 weeks)**: Batch migration with selective validation (70% auto-approved)
-- **Phase 4 (5 weeks)**: Final wave with progressive AutoSys decommissioning
-
-**Key Features:**
-- ✅ **AI Risk Classifier**: Automatically categorizes jobs as low/medium/high risk
-- ✅ **Parallel Processing**: Migrate 20+ jobs simultaneously
-- ✅ **Auto-Validation**: Skip side-by-side for 70% of jobs (low-risk)
-- ✅ **Batch Deployment**: Deploy 50-100 jobs at once
-- ✅ **54% Faster**, 36% cheaper ($162K vs $255K)
-
-**Risk:** Medium (1-2% rollback rate, instant rollback capability)
-
-See [ACCELERATED_MIGRATION.md](docs/ACCELERATED_MIGRATION.md) for details.
+1. **Event Server** — PostgreSQL job history
+2. **Scheduler** — orchestration, dependencies, SLAs
+3. **Application Server** — REST / GraphQL / WebSocket, OAuth2, RBAC
+4. **Execution runtime** — Kubernetes, ECS, ACI, SSH
+5. **Desktop / Web UI** — operations console and DAG designer
+6. **JIL CLI** — import and workflow management
 
 ---
 
-### 🔒 Standard Migration (26 weeks)
-**Recommended for:** Highly regulated environments, risk-averse organizations
+## AutoSys migration (12–26 weeks)
 
-- **Phase 1 (2 weeks)**: Manual preparation and analysis
-- **Phase 2 (4 weeks)**: Pilot with 10-20 jobs, extensive side-by-side validation
-- **Phase 3 (8 weeks)**: Wave 1 migration (100-200 jobs) with full validation
-- **Phase 4 (12 weeks)**: Wave 2 complete migration and decommissioning
+Two strategies; the desktop wizard in v0.1 is the **operator-facing** piece of that path.
 
-**Key Features:**
-- ✅ **Full Side-by-Side Validation**: Every job runs in parallel for 7+ days
-- ✅ **Manual Review**: Human approval for every migration
-- ✅ **Zero-Risk Approach**: Extensive testing and burn-in periods
-- ✅ **Audit-Ready**: Complete documentation for compliance
+### Accelerated (12 weeks)
 
-**Risk:** Very Low (<0.1% rollback rate)
+For teams that can automate validation.
 
-See [SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md#91-autosys-to-sentinel-migration-plan) for details.
+- Phase 1 (1 week): classify jobs, stand up the environment
+- Phase 2 (2 weeks): parallel pilot, auto-validate low-risk jobs
+- Phase 3 (4 weeks): batch migration
+- Phase 4 (5 weeks): decommission AutoSys
+
+### Standard (26 weeks)
+
+For highly regulated shops: side-by-side runs, manual review, audit pack.
+
+| Factor | Accelerated | Standard |
+|--------|-------------|----------|
+| Duration | 12 weeks | 26 weeks |
+| Automation | ~70% auto-validated | ~20% |
+| Best for | Agile teams, tight deadlines | Regulated industries |
+
+### Legacy protocols (planned)
+
+| Protocol | Role |
+|----------|------|
+| REST / GraphQL / WebSockets | Native APIs |
+| SOAP | Adapter for mainframe / AutoSys |
+| JIL | Parser + desktop wizard (v0.1 mock) |
 
 ---
 
-### Migration Comparison
+## Desktop app (v0.1)
 
-| Factor | Accelerated (12 weeks) | Standard (26 weeks) |
-|--------|------------------------|---------------------|
-| **Duration** | 12 weeks (3 months) | 26 weeks (6 months) |
-| **Cost** | $162K | $255K |
-| **Automation** | 70% jobs auto-validated | 20% automation |
-| **Rollback Rate** | 1-2% (instant recovery) | <0.1% |
-| **Parallel Jobs** | 20+ simultaneous | 5-10 simultaneous |
-| **Best For** | Agile teams, tight deadlines | Regulated industries |
-| **Engineering** | 4 FTEs | 3 FTEs |
+- **Dashboard** — KPIs, recent runs, alerts, click-through navigation
+- **Workflows** — create/edit with human schedules, parameters, task list, SLA; lifecycle menu
+- **Runs** — live and historical executions, sequential task log, Retry / Cancel
+- **JIL wizard** — parse, classify, convert (honest Command column), import drafts
+- **Calendars** — sessions, holidays, maintenance windows, save to catalog
+- **Alerts / Audit / Settings** — acknowledge, export, persist prefs, reset demo data
+- Command palette (`Ctrl+K`), confirm overlays, toasts, dark/light theme
 
-### Legacy System Integration
+**Platform:** Windows 10/11, macOS 11+, Linux (Ubuntu 20.04+)
 
-| Protocol | Support | Use Case |
-|----------|---------|----------|
-| **REST** | ✅ Native | Modern APIs |
-| **GraphQL** | ✅ Native | Complex queries |
-| **WebSockets** | ✅ Native | Real-time updates |
-| **SOAP** | 🔄 Adapter | Legacy mainframe/AutoSys integration |
-| **JIL Format** | ✅ Parser | AutoSys job import |
+---
 
-*SOAP adapter allows Sentinel to integrate with existing SOAP-based enterprise systems during migration.*
+## Design principles
 
-## 🖥️ Desktop App Features
+Have an extremely simple setup process with a minimal learning curve.  
+Manage job scheduling and orchestration quickly and in parallel.  
+Avoid custom agents and extra open ports; be agentless where SSH and native runtimes already exist.  
+Describe jobs in a language that is both machine and human friendly.  
+Focus on security and easy auditability.  
+Be the easiest job scheduling system to use. Firms should onboard hundreds of workflows in days, not months.
 
-The Sentinel Desktop App (like AutoSys WCC) provides:
+---
 
-- **Dashboard**: Real-time workflow status, SLA tracking, active alerts with auto-refresh
-- **Workflow Designer**: Visual DAG editor with drag-and-drop task creation (coming in M1.10)
-- **Run Monitor**: Live execution tracking with log streaming via SignalR
-- **🆕 Enhanced Migration Wizard**: 
-  - **AI Risk Classifier**: Auto-categorize jobs as low/medium/high risk
-  - **Parallel Import**: Process 20+ JIL jobs simultaneously  
-  - **Auto-Validation**: Skip side-by-side for 70% of low-risk jobs
-  - **Real-Time Progress**: Live dashboard showing migration status
-  - **Side-by-Side Comparison**: Automated output diff with AI analysis
-- **Calendar Manager**: Trading calendars, holidays, maintenance windows
-- **Alert Center**: SLA breaches, failures, anomalies with AI suggestions
-- **Audit Viewer**: Immutable audit trail for compliance
-
-**Enhanced Desktop Features (v0.1):**
-- ✅ Real-time updates via SignalR (no polling, instant notifications)
-- ✅ Dependency injection with proper service layer integration
-- ✅ Async/await throughout for responsive UI (never blocks)
-- ✅ Auto-refresh dashboard every 30 seconds (configurable)
-- ✅ Multi-step migration wizard with AI-powered risk analysis
-
-**Performance**: < 2s startup, 60 FPS rendering, < 150MB RAM
-
-**Platform**: Windows 10/11, macOS 11+, Linux (Ubuntu 20.04+)
-    SCHED -->|Dispatch Jobs| SSH
-    SCHED -->|Dispatch Jobs| AGENT
-    
-    K8S -->|Stream Logs| DB
-    ECS -->|Stream Logs| DB
-    ACI -->|Stream Logs| DB
-    SSH -->|Stream Logs| DB
-    AGENT -->|Stream Logs| DB
-    
-    SCHED -.->|Consume Events| KAFKA
-    SCHED -.->|Check Calendars| CAL
-    K8S -.->|Fetch Secrets| VAULT
-    ECS -.->|Fetch Secrets| VAULT
-    
-    API -->|Emit Logs| LOGS
-    SCHED -->|Emit Logs| LOGS
-    K8S -->|Emit Logs| LOGS
-    
-    API -->|Emit Metrics| METRICS
-    SCHED -->|Emit Metrics| METRICS
-    
-    API -->|Traces| TRACE
-    SCHED -->|Traces| TRACE
-
-    style DB fill:#4A90E2,stroke:#2E5C8A,stroke-width:3px,color:#fff
-    style SCHED fill:#E67E22,stroke:#BA6A1A,stroke-width:3px,color:#fff
-    style API fill:#27AE60,stroke:#1E8449,stroke-width:3px,color:#fff
-    style K8S fill:#9B59B6,stroke:#7D3C98,stroke-width:2px,color:#fff
-    style ECS fill:#9B59B6,stroke:#7D3C98,stroke-width:2px,color:#fff
-    style ACI fill:#9B59B6,stroke:#7D3C98,stroke-width:2px,color:#fff
-    style UI fill:#3498DB,stroke:#2874A6,stroke-width:2px,color:#fff
-    style CLI fill:#3498DB,stroke:#2874A6,stroke-width:2px,color:#fff
-```
-
-### Core Components
-
-1. **Event Server** - PostgreSQL-based central database with time-series optimization for job history
-2. **Scheduler** - Distributed orchestration engine with leader election and dependency resolution
-3. **Application Server** - REST/GraphQL/WebSocket APIs with OAuth2 authentication and RBAC
-4. **Execution Runtime** - Agentless-first (Kubernetes Jobs, AWS ECS, Azure Container Instances, SSH)
-5. **Web UI/WCC** - React-based workflow control center with DAG visualization
-6. **JIL CLI** - Command-line interface with JIL/YAML import and workflow management
-
-
-## 🎯 Design Principles
-
-Have an extremely simple setup process with a minimal learning curve.
-Manage job scheduling and orchestration quickly and in parallel.
-Avoid custom-agents and additional open ports, be agentless by leveraging the existing SSH daemon and native technologies.
-Describe jobs in a language that is both machine and human friendly.
-Focus on security and easy auditability/review/rewriting of content.
-Be the easiest job scheduling and orchestration automation system to use, ever. Financial institutions should be able to onboard hundreds of workflows in days, not months, and maintain them with ease.
-
-
-## 🎯 Features
-
-- **Agentless-First Execution**: 60-80% of jobs run without agents using cloud-native runtimes
-- **DAG-based Workflows**: Visual workflow designer with dependency management
-- **24/7 Trading Support**: Session-aware calendars for follow-the-sun operations
-- **JIL Migration**: Import AutoSys jobs with ≥70% automated conversion and confidence scoring
-- **YAML DSL**: Modern workflow definitions with templates and validation
-- **Real-time Observability**: Live monitoring with SLA tracking and anomaly detection
-- **Compliance Ready**: Immutable audit trails, evidence packs, and digital signatures
-
-## 🛠 Technology Stack
+## Technology stack
 
 | Component | Technology |
 |-----------|------------|
-| UI Framework | Avalonia UI 11 |
+| UI | Avalonia UI 11 |
 | Runtime | .NET 8 LTS |
 | Architecture | MVVM (CommunityToolkit) |
-| API Client | Refit 8.0 |
+| API client | Refit 8.0 |
 | Logging | Serilog |
+| v0.1 catalog | JSON files + in-process timer |
 
-## 📦 Building for Production
+---
 
-### Windows
+## Building for production
+
 ```bash
+# Windows
 dotnet publish src/Sentinel.Desktop -c Release -r win-x64 --self-contained
-```
 
-### macOS
-```bash
+# macOS
 dotnet publish src/Sentinel.Desktop -c Release -r osx-arm64 --self-contained
-```
 
-### Linux
-```bash
+# Linux
 dotnet publish src/Sentinel.Desktop -c Release -r linux-x64 --self-contained
 ```
 
-## � Documentation
-
-| Document | Description |
-|----------|-------------|
-| [V1 Open Source Scope](docs/V1_OPEN_SOURCE_SCOPE.md) | ⭐ Feature roadmap and v1.0 scope definition |
-| [Architecture](docs/ARCHITECTURE.md) | System architecture and design patterns |
-| [Technical Spec](docs/TECHNICAL_SPEC.md) | Detailed technical specifications |
-| [System Design](docs/SYSTEM_DESIGN.md) | Component design and data models |
-| [Accelerated Migration](docs/ACCELERATED_MIGRATION.md) | 12-week AutoSys migration strategy |
-| [Product Requirements](docs/prd.md) | Product requirements document |
-| [Business Requirements](docs/brd.md) | Business requirements document |
-| [Future State](docs/FUTURE_STATE.md) | Long-term roadmap and feature planning |
-
 ---
 
-## 🤝 Contributing
+## Contributing
 
-We welcome contributions! Sentinel is in early development (v0.1), focusing on architecture and core infrastructure.
+v0.1 is the desktop console and mock catalog. Useful next work: scheduler, JIL parser hardening, Postgres schema, REST API, DAG designer.
 
-**Current Focus Areas:**
-- Core scheduler implementation (cron parsing, dependency resolution)
-- JIL parser and AutoSys migration tooling
-- PostgreSQL schema and Entity Framework migrations
-- REST API endpoints
-- Desktop UI enhancements
-
-**How to Contribute:**
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Open a pull request
 
-**Development Setup:**
-- .NET 8.0 SDK
-- Visual Studio 2022, VS Code, or JetBrains Rider
-- PostgreSQL 16+ (for integration tests)
-- Docker (for containerized testing)
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines (coming soon).
+**Dev setup:** .NET 8 SDK; Visual Studio 2022, VS Code, or Rider.
 
 ---
 
-## 📜 License
+## License
 
 **Open Source Core:** Apache 2.0  
 **Enterprise Features:** Commercial License
-
-Sentinel Orchestrator is dual-licensed:
-- The **core platform** (scheduler, API, CLI, basic UI, JIL parser) is licensed under [Apache License 2.0](LICENSE)
-- **Enterprise features** (AI risk classifier, SAML/OIDC SSO, SOX compliance automation, priority support) require a commercial license
 
 Copyright © 2026 Sentinel Orchestrator Contributors
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- Built with [Avalonia UI](https://avaloniaui.net/) for cross-platform desktop
-- Inspired by AutoSys, Apache Airflow, and modern orchestration platforms
-- Supported by the open-source community and early adopters in financial services
+- [Avalonia UI](https://avaloniaui.net/) for the desktop shell
+- AutoSys, Apache Airflow, and modern orchestration platforms
 
 ---
 
-## 📧 Contact
+## Contact
 
-- **Issues & Bugs:** [GitHub Issues](https://github.com/machugram/sentinel/issues)
+- **Issues:** [GitHub Issues](https://github.com/machugram/sentinel/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/machugram/sentinel/discussions)
-
----
-
-**⭐ Star this project if you're interested in a modern AutoSys alternative!**
