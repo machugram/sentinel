@@ -3,19 +3,50 @@
              xmlns:vm="using:Sentinel.Desktop.ViewModels"
              x:Class="Sentinel.Desktop.Views.SettingsView"
              x:DataType="vm:SettingsViewModel">
-    
-    <StackPanel Margin="24">
-        <TextBlock Text="Settings" Classes="page-title"/>
-        <TextBlock Text="Application configuration and preferences" Classes="caption"/>
-        
-        <Border Classes="card" Margin="0,24,0,0" MinHeight="400">
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                <TextBlock Text="⚙️" FontSize="48" HorizontalAlignment="Center"/>
-                <TextBlock Text="Settings" FontSize="20" FontWeight="SemiBold" Margin="0,16,0,8" HorizontalAlignment="Center"/>
-                <TextBlock Text="API configuration, notifications, and theme preferences" 
-                           Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center"/>
+
+    <Design.DataContext>
+        <vm:SettingsViewModel/>
+    </Design.DataContext>
+
+    <ScrollViewer>
+        <StackPanel Spacing="16" MaxWidth="720" HorizontalAlignment="Left">
+            <StackPanel>
+                <TextBlock Text="Settings" Classes="page-title"/>
+                <TextBlock Text="Local desktop preferences. Saved on this machine." Classes="caption"/>
             </StackPanel>
-        </Border>
-    </StackPanel>
-    
+
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Connection" Classes="section-title"/>
+                    <TextBlock Text="API base URL" Classes="caption"/>
+                    <TextBox Text="{Binding ApiBaseUrl}"/>
+                    <CheckBox Content="Enable realtime SignalR (requires a running API)" IsChecked="{Binding EnableRealtime}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Appearance" Classes="section-title"/>
+                    <TextBlock Text="Theme" Classes="caption"/>
+                    <ComboBox Width="200" HorizontalAlignment="Left" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}"/>
+                    <TextBlock Text="Dashboard refresh (seconds)" Classes="caption"/>
+                    <TextBox Width="160" HorizontalAlignment="Left" Text="{Binding RefreshIntervalSeconds}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Notifications" Classes="section-title"/>
+                    <CheckBox Content="Show toast notifications" IsChecked="{Binding EnableNotifications}"/>
+                    <CheckBox Content="Share anonymous telemetry" IsChecked="{Binding EnableTelemetry}"/>
+                </StackPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Classes="primary" Content="Save" Command="{Binding SaveCommand}"/>
+                <Button Classes="ghost" Content="Reset defaults" Command="{Binding ResetCommand}"/>
+                <Button Classes="danger" Content="Reset demo data" Command="{Binding ResetDemoDataCommand}"/>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>

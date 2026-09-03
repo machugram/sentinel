@@ -1,21 +1,103 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Sentinel.Desktop.ViewModels"
+             xmlns:core="using:Sentinel.Core.Models"
              x:Class="Sentinel.Desktop.Views.AlertsView"
+             x:Name="AlertsRoot"
              x:DataType="vm:AlertsViewModel">
-    
-    <StackPanel Margin="24">
-        <TextBlock Text="Alerts" Classes="page-title"/>
-        <TextBlock Text="SLA breaches, anomalies, and system notifications" Classes="caption"/>
-        
-        <Border Classes="card" Margin="0,24,0,0" MinHeight="400">
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                <TextBlock Text="🔔" FontSize="48" HorizontalAlignment="Center"/>
-                <TextBlock Text="Alerts View" FontSize="20" FontWeight="SemiBold" Margin="0,16,0,8" HorizontalAlignment="Center"/>
-                <TextBlock Text="Real-time alerting and AI-assisted RCA" 
-                           Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center"/>
+
+    <Design.DataContext>
+        <vm:AlertsViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,Auto,*">
+        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+            <StackPanel>
+                <TextBlock Text="Alert center" Classes="page-title"/>
+                <TextBlock Text="SLA breaches, failures, and suggested remediation" Classes="caption"/>
             </StackPanel>
-        </Border>
-    </StackPanel>
-    
+            <ComboBox Grid.Column="1" MinWidth="140" ItemsSource="{Binding SeverityOptions}" SelectedItem="{Binding SeverityFilter}"/>
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="12" Margin="0,0,0,12">
+            <Border Classes="stat-card">
+                <StackPanel>
+                    <TextBlock Text="Critical" Classes="caption"/>
+                    <TextBlock Text="{Binding CriticalCount}" Classes="metric" Foreground="{DynamicResource DangerBrush}"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Classes="stat-card">
+                <StackPanel>
+                    <TextBlock Text="Warning" Classes="caption"/>
+                    <TextBlock Text="{Binding WarningCount}" Classes="metric" Foreground="{DynamicResource WarningBrush}"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Classes="stat-card">
+                <StackPanel>
+                    <TextBlock Text="Info" Classes="caption"/>
+                    <TextBlock Text="{Binding InfoCount}" Classes="metric" Foreground="{DynamicResource InfoBrush}"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="2" ColumnDefinitions="1.3*,*" ColumnSpacing="12">
+            <Border Classes="card" Padding="0">
+                <Grid>
+                <ListBox ItemsSource="{Binding Alerts}" SelectedItem="{Binding SelectedAlert}" Background="Transparent" BorderThickness="0"
+                         IsVisible="{Binding HasAlerts}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="core:Alert">
+                            <Border Padding="12" Margin="4" CornerRadius="8" Background="{DynamicResource SurfaceBrush}"
+                                    BorderThickness="3,0,0,0"
+                                    BorderBrush="{Binding Severity, Converter={StaticResource SeverityToBrush}}">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"/>
+                                        <TextBlock Text="{Binding Message}" Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{Binding CreatedAt, Converter={StaticResource RelativeTime}}" Classes="caption"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <TextBlock Text="No active alerts." Classes="empty-state"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           IsVisible="{Binding !HasAlerts}"/>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Classes="card">
+                <Panel>
+                <TextBlock Text="Select an alert to review." Classes="empty-state"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           IsVisible="{Binding !HasSelection}"/>
+                <StackPanel Spacing="12" IsVisible="{Binding HasSelection}">
+                    <TextBlock Text="{Binding SelectedAlert.Title}" Classes="section-title" TextWrapping="Wrap"/>
+                    <Border Classes="status-pill" HorizontalAlignment="Left"
+                            Background="{Binding SelectedAlert.Severity, Converter={StaticResource SeverityToBackground}}">
+                        <TextBlock Text="{Binding SelectedAlert.Severity}" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{Binding SelectedAlert.Severity, Converter={StaticResource SeverityToBrush}}"/>
+                    </Border>
+                    <TextBlock Text="{Binding SelectedAlert.Message}" TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}"/>
+                    <TextBlock Text="Suggested action" Classes="caption"/>
+                    <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="8" Padding="12">
+                        <TextBlock Text="{Binding SelectedAlert.AiSuggestion}" TextWrapping="Wrap" Classes="caption"/>
+                    </Border>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Classes="ghost" Content="Acknowledge"
+                                Command="{Binding AcknowledgeCommand}"
+                                CommandParameter="{Binding SelectedAlert}"/>
+                        <Button Classes="ghost" Content="Open run"
+                                Command="{Binding OpenRunCommand}"
+                                IsEnabled="{Binding CanOpenRun}"/>
+                        <Button Classes="primary" Content="Resolve"
+                                Command="{Binding ResolveCommand}"
+                                CommandParameter="{Binding SelectedAlert}"/>
+                    </StackPanel>
+                </StackPanel>
+                </Panel>
+            </Border>
+        </Grid>
+    </Grid>
 </UserControl>

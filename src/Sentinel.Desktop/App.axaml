@@ -2,8 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Sentinel.Desktop.App"
              xmlns:local="using:Sentinel.Desktop"
+             xmlns:converters="using:Sentinel.Desktop.Converters"
              RequestedThemeVariant="Dark">
-             <!-- Using Dark theme for enterprise/trading platform aesthetic -->
 
     <Application.DataTemplates>
         <local:ViewLocator/>
@@ -11,34 +11,95 @@
   
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
         <StyleInclude Source="avares://Sentinel.Desktop/Styles/AppStyles.axaml" />
     </Application.Styles>
     
     <Application.Resources>
-        <!-- Color Palette - Enterprise Trading Platform -->
-        <Color x:Key="PrimaryColor">#0078D4</Color>
-        <Color x:Key="PrimaryDarkColor">#005A9E</Color>
-        <Color x:Key="AccentColor">#00B294</Color>
-        <Color x:Key="SuccessColor">#10B981</Color>
-        <Color x:Key="WarningColor">#F59E0B</Color>
-        <Color x:Key="DangerColor">#EF4444</Color>
-        <Color x:Key="SurfaceColor">#1E1E2E</Color>
-        <Color x:Key="BackgroundColor">#11111B</Color>
-        <Color x:Key="CardColor">#181825</Color>
-        <Color x:Key="BorderColor">#313244</Color>
-        <Color x:Key="TextColor">#CDD6F4</Color>
-        <Color x:Key="TextMutedColor">#6C7086</Color>
-        
-        <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
-        <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
-        <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}" />
-        <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
-        <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}" />
-        <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
-        <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}" />
-        <SolidColorBrush x:Key="CardBrush" Color="{StaticResource CardColor}" />
-        <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}" />
-        <SolidColorBrush x:Key="TextBrush" Color="{StaticResource TextColor}" />
-        <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMutedColor}" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Sentinel.Desktop/Styles/Icons.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <Color x:Key="PrimaryColor">#1B5E7B</Color>
+                    <Color x:Key="PrimaryDarkColor">#13485E</Color>
+                    <Color x:Key="AccentColor">#2EC4B6</Color>
+                    <Color x:Key="SuccessColor">#2E7D32</Color>
+                    <Color x:Key="WarningColor">#E65100</Color>
+                    <Color x:Key="DangerColor">#C62828</Color>
+                    <Color x:Key="InfoColor">#1976D2</Color>
+                    <Color x:Key="SurfaceColor">#1E1E2E</Color>
+                    <Color x:Key="BackgroundColor">#11111B</Color>
+                    <Color x:Key="CardColor">#181825</Color>
+                    <Color x:Key="BorderColor">#313244</Color>
+                    <Color x:Key="TextColor">#CDD6F4</Color>
+                    <Color x:Key="TextMutedColor">#6C7086</Color>
+                    <Color x:Key="SystemAccentColor">#2EC4B6</Color>
+
+                    <SolidColorBrush x:Key="PrimaryBrush" Color="#1B5E7B" />
+                    <SolidColorBrush x:Key="PrimaryDarkBrush" Color="#13485E" />
+                    <SolidColorBrush x:Key="AccentBrush" Color="#2EC4B6" />
+                    <SolidColorBrush x:Key="SuccessBrush" Color="#2E7D32" />
+                    <SolidColorBrush x:Key="WarningBrush" Color="#E65100" />
+                    <SolidColorBrush x:Key="DangerBrush" Color="#C62828" />
+                    <SolidColorBrush x:Key="InfoBrush" Color="#1976D2" />
+                    <SolidColorBrush x:Key="SurfaceBrush" Color="#1E1E2E" />
+                    <SolidColorBrush x:Key="BackgroundBrush" Color="#11111B" />
+                    <SolidColorBrush x:Key="CardBrush" Color="#181825" />
+                    <SolidColorBrush x:Key="BorderBrush" Color="#313244" />
+                    <SolidColorBrush x:Key="TextBrush" Color="#CDD6F4" />
+                    <SolidColorBrush x:Key="TextMutedBrush" Color="#6C7086" />
+                    <SolidColorBrush x:Key="OverlayBrush" Color="#AA11111B" />
+                    <SolidColorBrush x:Key="NavActiveBrush" Color="#1B5E7B" />
+                    <SolidColorBrush x:Key="CommandBarBrush" Color="#161622" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <Color x:Key="PrimaryColor">#1B5E7B</Color>
+                    <Color x:Key="PrimaryDarkColor">#13485E</Color>
+                    <Color x:Key="AccentColor">#1A9E94</Color>
+                    <Color x:Key="SuccessColor">#2E7D32</Color>
+                    <Color x:Key="WarningColor">#E65100</Color>
+                    <Color x:Key="DangerColor">#C62828</Color>
+                    <Color x:Key="InfoColor">#1976D2</Color>
+                    <Color x:Key="SurfaceColor">#FFFFFF</Color>
+                    <Color x:Key="BackgroundColor">#F4F6F8</Color>
+                    <Color x:Key="CardColor">#FFFFFF</Color>
+                    <Color x:Key="BorderColor">#D7DEE5</Color>
+                    <Color x:Key="TextColor">#1A1B26</Color>
+                    <Color x:Key="TextMutedColor">#5C6570</Color>
+                    <Color x:Key="SystemAccentColor">#1A9E94</Color>
+
+                    <SolidColorBrush x:Key="PrimaryBrush" Color="#1B5E7B" />
+                    <SolidColorBrush x:Key="PrimaryDarkBrush" Color="#13485E" />
+                    <SolidColorBrush x:Key="AccentBrush" Color="#1A9E94" />
+                    <SolidColorBrush x:Key="SuccessBrush" Color="#2E7D32" />
+                    <SolidColorBrush x:Key="WarningBrush" Color="#E65100" />
+                    <SolidColorBrush x:Key="DangerBrush" Color="#C62828" />
+                    <SolidColorBrush x:Key="InfoBrush" Color="#1976D2" />
+                    <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="BackgroundBrush" Color="#F4F6F8" />
+                    <SolidColorBrush x:Key="CardBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="BorderBrush" Color="#D7DEE5" />
+                    <SolidColorBrush x:Key="TextBrush" Color="#1A1B26" />
+                    <SolidColorBrush x:Key="TextMutedBrush" Color="#5C6570" />
+                    <SolidColorBrush x:Key="OverlayBrush" Color="#88F4F6F8" />
+                    <SolidColorBrush x:Key="NavActiveBrush" Color="#1B5E7B" />
+                    <SolidColorBrush x:Key="CommandBarBrush" Color="#FFFFFF" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <converters:StatusToBrushConverter x:Key="StatusToBrush" />
+            <converters:StatusToBackgroundConverter x:Key="StatusToBackground" />
+            <converters:SeverityToBrushConverter x:Key="SeverityToBrush" />
+            <converters:SeverityToBackgroundConverter x:Key="SeverityToBackground" />
+            <converters:BoolToOpacityConverter x:Key="BoolToOpacity" />
+            <converters:RelativeTimeConverter x:Key="RelativeTime" />
+            <converters:PercentageToColorConverter x:Key="PercentageToColor" />
+            <converters:IconKeyToGeometryConverter x:Key="IconKeyToGeometry" />
+            <converters:DurationConverter x:Key="Duration" />
+            <converters:NegateConverter x:Key="Negate" />
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

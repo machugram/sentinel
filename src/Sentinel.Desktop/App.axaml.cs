@@ -1,16 +1,23 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
-using System.Linq;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
+using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.Extensions.DependencyInjection;
+using Sentinel.Desktop.Models;
+using Sentinel.Desktop.Services;
 using Sentinel.Desktop.ViewModels;
 using Sentinel.Desktop.Views;
+using Sentinel.Infrastructure;
+using Sentinel.Infrastructure.Mock;
 
 namespace Sentinel.Desktop;
 
 public partial class App : Application
 {
+    public static IServiceProvider Services { get; private set; } = null!;
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -18,30 +25,54 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        var collection = new ServiceCollection();
+        ConfigureServices(collection);
+        Services = collection.BuildServiceProvider();
+
+        var catalog = Services.GetRequiredService<IDemoCatalogService>();
+        catalog.CatalogChanged += (_, _) =>
+        {
+            Dispatcher.UIThread.Post(() =>
+                WeakReferenceMessenger.Default.Send(new DataRefreshedMessage(DateTime.UtcNow)));
+        };
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
-            // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
             DisableAvaloniaDataAnnotationValidation();
+            var config = Services.GetRequiredService<AppConfiguration>();
+            ThemeManager.Apply(config.Theme);
+
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainWindowViewModel(),
+                DataContext = Services.GetRequiredService<MainWindowViewModel>(),
             };
         }
 
         base.OnFrameworkInitializationCompleted();
     }
 
+    private static void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSingleton(AppConfigurationStore.Load());
+        services.AddSentinelInfrastructureMock();
+        services.AddSingleton<IFilePickerService, AvaloniaFilePickerService>();
+        services.AddTransient<MainWindowViewModel>();
+        services.AddTransient<DashboardViewModel>();
+        services.AddTransient<WorkflowListViewModel>();
+        services.AddTransient<RunsViewModel>();
+        services.AddTransient<AlertsViewModel>();
+        services.AddTransient<MigrationWizardViewModel>();
+        services.AddTransient<CalendarsViewModel>();
+        services.AddTransient<AuditViewModel>();
+        services.AddTransient<SettingsViewModel>();
+    }
+
     private void DisableAvaloniaDataAnnotationValidation()
     {
-        // Get an array of plugins to remove
         var dataValidationPluginsToRemove =
             BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
 
-        // remove each entry found
         foreach (var plugin in dataValidationPluginsToRemove)
-        {
             BindingPlugins.DataValidators.Remove(plugin);
-        }
     }
 }

@@ -1,21 +1,118 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Sentinel.Desktop.ViewModels"
+             xmlns:core="using:Sentinel.Core.Models"
              x:Class="Sentinel.Desktop.Views.RunsView"
              x:DataType="vm:RunsViewModel">
-    
-    <StackPanel Margin="24">
-        <TextBlock Text="Workflow Runs" Classes="page-title"/>
-        <TextBlock Text="Monitor and manage workflow executions" Classes="caption"/>
-        
-        <Border Classes="card" Margin="0,24,0,0" MinHeight="400">
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                <TextBlock Text="📊" FontSize="48" HorizontalAlignment="Center"/>
-                <TextBlock Text="Runs View" FontSize="20" FontWeight="SemiBold" Margin="0,16,0,8" HorizontalAlignment="Center"/>
-                <TextBlock Text="View active and historical workflow runs" 
-                           Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center"/>
+
+    <Design.DataContext>
+        <vm:RunsViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*">
+        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+            <StackPanel>
+                <TextBlock Text="Workflow runs" Classes="page-title"/>
+                <TextBlock Text="Inspect live and historical executions" Classes="caption"/>
             </StackPanel>
-        </Border>
-    </StackPanel>
-    
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <TextBox Classes="search-box" Width="220" Watermark="Filter by workflow…" Text="{Binding SearchQuery}"/>
+                <ComboBox MinWidth="140" ItemsSource="{Binding StatusOptions}" SelectedItem="{Binding StatusFilter}"/>
+                <Button Classes="ghost" Command="{Binding LoadCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="{StaticResource Icon.Refresh}" Width="14" Height="14"/>
+                        <TextBlock Text="Refresh"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnDefinitions="1.4*,*" ColumnSpacing="12">
+            <Border Classes="card" Padding="0">
+                <Grid>
+                    <DataGrid ItemsSource="{Binding Runs}"
+                              SelectedItem="{Binding SelectedRun}"
+                              AutoGenerateColumns="False"
+                              IsVisible="{Binding HasRuns}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Workflow" Binding="{Binding WorkflowName}" Width="2*"/>
+                        <DataGridTemplateColumn Header="Status" Width="110">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="core:WorkflowRun">
+                                    <Border Classes="status-pill" Margin="8,0"
+                                            Background="{Binding Status, Converter={StaticResource StatusToBackground}}">
+                                        <TextBlock Text="{Binding Status}" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{Binding Status, Converter={StaticResource StatusToBrush}}"/>
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="Trigger" Binding="{Binding TriggerType}" Width="100"/>
+                        <DataGridTextColumn Header="Started" Binding="{Binding StartedAt, Converter={StaticResource RelativeTime}}" Width="110"/>
+                        <DataGridTextColumn Header="Duration" Binding="{Binding Duration, Converter={StaticResource Duration}}" Width="100"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                    <TextBlock Text="{Binding EmptyMessage}" Classes="empty-state"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               IsVisible="{Binding !HasRuns}"/>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Classes="card">
+                <Panel>
+                <TextBlock Text="Select a run to inspect tasks and logs." Classes="empty-state"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           IsVisible="{Binding !HasSelection}"/>
+                <Grid RowDefinitions="Auto,Auto,Auto,*,*" IsVisible="{Binding HasSelection}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding SelectedRun.WorkflowName}" Classes="section-title"/>
+                        <TextBlock Text="{Binding SelectedRun.TriggeredBy, StringFormat='Triggered by {0}'}" Classes="caption"/>
+                    </StackPanel>
+                    <Border Grid.Row="1" Classes="status-pill" HorizontalAlignment="Left" Margin="0,8,0,0"
+                            Background="{DynamicResource WarningBrush}"
+                            IsVisible="{Binding SelectedRunExceedsSla}">
+                        <TextBlock Text="Exceeded SLA warning" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
+                    </Border>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="0,12,0,12">
+                        <Button Classes="primary" Command="{Binding RetryCommand}" IsEnabled="{Binding CanRetry}" Content="Retry"/>
+                        <Button Classes="danger" Command="{Binding CancelCommand}" IsEnabled="{Binding CanCancel}" Content="Cancel"/>
+                    </StackPanel>
+                    <ScrollViewer Grid.Row="3">
+                    <ItemsControl ItemsSource="{Binding SelectedRun.TaskRuns}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="core:TaskRun">
+                                <Border Padding="10" Margin="0,0,0,8" Background="{DynamicResource SurfaceBrush}" CornerRadius="8">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding TaskName}" Foreground="{DynamicResource TextBrush}"/>
+                                            <TextBlock Text="{Binding Duration, Converter={StaticResource Duration}}" Classes="caption" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                        <Border Grid.Column="1" Classes="status-pill"
+                                                Background="{Binding Status, Converter={StaticResource StatusToBackground}}">
+                                            <TextBlock Text="{Binding Status}" FontSize="11"
+                                                       Foreground="{Binding Status, Converter={StaticResource StatusToBrush}}"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    </ScrollViewer>
+                    <Border Grid.Row="4" Background="{DynamicResource SurfaceBrush}" CornerRadius="8" Padding="10" Margin="0,8,0,0">
+                        <Grid RowDefinitions="Auto,*">
+                            <TextBlock Text="Run log" Classes="caption" Margin="0,0,0,6"/>
+                            <ScrollViewer Grid.Row="1">
+                                <TextBlock Text="{Binding RunLog}"
+                                           FontFamily="JetBrains Mono, Consolas, monospace"
+                                           FontSize="11"
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource TextBrush}"/>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Grid>
+                </Panel>
+            </Border>
+        </Grid>
+    </Grid>
 </UserControl>
